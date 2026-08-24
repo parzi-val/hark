@@ -1,0 +1,179 @@
+package com.hark.ui.talk
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.hark.domain.TidyResult
+import com.hark.ui.components.ListeningWave
+import com.hark.ui.components.MetaLabel
+import com.hark.ui.components.SectionLabel
+import com.hark.ui.harkViewModel
+import com.hark.ui.theme.Hark
+import com.hark.ui.theme.HarkType
+
+@Composable
+fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
+    val vm: TalkViewModel = harkViewModel { TalkViewModel(it.repository, it.tidyService, it.openAiClient, it::newAudioRecorder) }
+    val state by vm.ui.collectAsStateWithLifecycle()
+    val c = Hark.colors
+    val context = LocalContextCompat()
+
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) vm.start() else vm.fail("Microphone permission is needed to talk.")
+    }
+    fun ensureListening() {
+        if (hasAudioPermission(context)) vm.start() else permLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+    LaunchedEffect(Unit) { ensureListening() }
+
+    Column(Modifier.fillMaxSize().background(c.paper)) {
+        // Top bar
+        Row(
+            Modifier.fillMaxWidth().padding(start = 22.dp, end = 22.dp, top = 20.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MetaLabel("↩ Close", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
+            MetaLabel(phaseLabel(state.phase), color = c.inkFaint)
+        }
+
+        // Body
+        Column(
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
+                .padding(horizontal = 26.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            val result = state.result
+            when {
+                state.phase == TalkPhase.ERROR ->
+                    Text(state.error ?: "Something went wrong.", style = HarkType.bodyRelaxed, color = c.rust)
+
+                state.phase == TalkPhase.RESULT && result != null -> ResultView(result)
+
+                else -> Text(
+                    text = state.transcript.ifBlank { "Listening… say what's on your mind." },
+                    style = HarkType.bodyRelaxed,
+                    color = if (state.transcript.isBlank()) c.inkFaint else c.inkMuted,
+                )
+            }
+        }
+
+        // Controls
+        Column(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            when (state.phase) {
+                TalkPhase.LISTENING -> {
+                    ListeningWave(level = state.level, color = c.rust, modifier = Modifier.height(44.dp))
+                    MetaLabel(formatElapsed(state.elapsed), color = c.inkFaint)
+                    FilledPill("STOP & TIDY", onClick = vm::stopAndTidy)
+                }
+
+                TalkPhase.TRANSCRIBING ->
+                    Text("TRANSCRIBING…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
+
+                TalkPhase.TIDYING ->
+                    Text("TIDYING…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
+
+                TalkPhase.RESULT -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedPill("AGAIN", Modifier.weight(1f), onClick = vm::again)
+                    FilledPill("KEEP ALL", Modifier.weight(2f), onClick = { vm.keep(onKept) })
+                }
+
+                TalkPhase.ERROR -> FilledPill("TRY AGAIN", onClick = { ensureListening() })
+                TalkPhase.IDLE -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultView(result: TidyResult) {
+    val c = Hark.colors
+    SectionLabel("Tidied · 1 note, ${result.tasks.size} tasks")
+    Text(result.title, style = HarkType.title, color = c.ink)
+    if (result.note.isNotBlank()) Text(result.note, style = HarkType.bodyRelaxed, color = c.ink.copy(alpha = 0.82f))
+    if (result.tasks.isNotEmpty()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            result.tasks.forEach { t ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                    Box(
+                        Modifier.padding(top = 3.dp).size(16.dp).clip(RoundedCornerShape(3.dp))
+                            .border(1.dp, c.checkboxBorder, RoundedCornerShape(3.dp)),
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(t.title, style = HarkType.item, color = c.ink, textDecoration = TextDecoration.None)
+                        t.dueHint?.let { MetaLabel("heard \"$it\"", color = c.rust) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilledPill(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val c = Hark.colors
+    Box(
+        modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(c.ink).clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) { Text(label, style = HarkType.label, color = c.paper) }
+}
+
+@Composable
+private fun OutlinedPill(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val c = Hark.colors
+    Box(
+        modifier.height(54.dp).clip(RoundedCornerShape(27.dp))
+            .border(1.dp, c.ink.copy(alpha = 0.16f), RoundedCornerShape(27.dp)).clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) { Text(label, style = HarkType.label, color = c.inkMuted) }
+}
+
+private fun phaseLabel(phase: TalkPhase): String = when (phase) {
+    TalkPhase.LISTENING -> "Listening"
+    TalkPhase.TRANSCRIBING -> "Transcribing"
+    TalkPhase.TIDYING -> "Thinking"
+    TalkPhase.RESULT -> "Tidied"
+    TalkPhase.ERROR -> "—"
+    TalkPhase.IDLE -> ""
+}
+
+private fun formatElapsed(seconds: Int): String = "%d:%02d".format(seconds / 60, seconds % 60)
+
+private fun hasAudioPermission(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+@Composable
+private fun LocalContextCompat(): Context = androidx.compose.ui.platform.LocalContext.current

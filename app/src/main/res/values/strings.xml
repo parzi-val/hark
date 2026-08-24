@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Hark</string>
+    <string name="shortcut_talk_short">Talk</string>
+    <string name="shortcut_talk_long">Talk to Hark</string>
+    <string name="shortcut_write_short">Write</string>
+    <string name="shortcut_write_long">Write a note</string>
+</resources>

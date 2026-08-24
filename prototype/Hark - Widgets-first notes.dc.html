@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#e9e6df;font-family:"Syne Mono",ui-monospace,monospace}
+a{color:#8a4b34}a:hover{color:#6d3a27}
+.dv-turn{padding:44px 48px 36px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:400 10px "Syne Mono",monospace;padding:3px 7px;background:#1c1b19;color:#f4f2ed;border-radius:4px;text-decoration:none;letter-spacing:.12em}
+.dv-tname{font:400 13px/1.2 "Syne Mono",monospace;color:#1c1b19;letter-spacing:.04em}
+.dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:400 10.5px "Syne Mono",monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1c1b19;border-radius:5px;text-decoration:none;letter-spacing:.1em}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 "Syne Mono",monospace;color:rgba(28,27,25,.55);letter-spacing:.03em}
+.dv-opt:target .dv-oid{background:#8a4b34;color:#fff}
+.dv-next{margin:24px 0 0;font:400 11.5px/1.6 "Syne Mono",monospace;color:rgba(28,27,25,.5);letter-spacing:.02em}
+@keyframes nibBar{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1)}}
+@keyframes nibFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes nibPulse{0%,100%{opacity:.35}50%{opacity:.9}}
+</style></helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">The app — one stream, four places, no chrome</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Stream — everything in one river</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+  <div style="padding:24px 24px 14px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font:400 27px/1 'Libre Baskerville',Georgia,serif;color:#1c1b19">Hark</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.4)">TUE 24 · 3 OPEN</span>
+    </div>
+    <div style="display:flex;gap:20px">
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#1c1b19;border-bottom:1px solid #1c1b19;padding-bottom:4px">ALL</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.42);padding-bottom:4px">OPEN</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.42);padding-bottom:4px">NOTES</span>
+    </div>
+  </div>
+
+  <div style="padding:6px 24px 10px;display:flex;flex-direction:column;gap:9px;border-top:1px solid rgba(28,27,25,.09);background:rgba(28,27,25,.025)">
+    <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38);padding-top:12px">PINNED TO WIDGET</span>
+    <span style="font:400 14.5px/1.5 'Libre Baskerville',Georgia,serif;color:#1c1b19;padding-bottom:12px">Overheard on the 14 — “it's not a shortcut if you enjoy the long way.”</span>
+  </div>
+
+  <div style="padding:16px 24px 6px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">TODAY</span></div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Call the framer about the Kiyoshi print</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">FROM TALK · 09:31</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:1px;background:rgba(28,27,25,.32);margin-top:12px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Framing &amp; the third levain</span>
+      <span style="font:400 13px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55)">The levain doubled in five hours at 24°C. Try a longer autolyse next time — the crumb was tight near the base.</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">09:31 · 2 TASKS INSIDE</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Buy bread flour</span>
+  </div>
+
+  <div style="padding:22px 24px 6px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">EARLIER THIS WEEK</span></div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Water the fig before Thursday</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">THU</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:rgba(28,27,25,.4);border-radius:1px"></div></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.4);text-decoration:line-through">Renew the library card</span>
+  </div>
+
+  <div style="margin-top:auto;position:sticky;bottom:0;padding:16px 18px 18px;background:linear-gradient(to top,#f4f2ed 58%,rgba(244,242,237,0));display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;height:54px;border-radius:27px;border:1px solid rgba(28,27,25,.14);background:rgba(250,248,244,.92);display:flex;align-items:center;justify-content:center;gap:9px">
+        <span style="font:400 16px 'Syne Mono',monospace;color:#1c1b19">+</span>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.6)">WRITE</span>
+      </div>
+      <div style="flex:1;height:54px;border-radius:27px;background:#1c1b19;display:flex;align-items:center;justify-content:center;gap:9px">
+        <div style="display:flex;align-items:center;gap:2.5px;height:14px">
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out infinite"></div>
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .22s infinite"></div>
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .44s infinite"></div>
+        </div>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#f4f2ed">TALK</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:0 8px">
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#1c1b19">STREAM</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">TODAY</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">RECALL</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">WIDGETS</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Today — the day as a page</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+  <div style="padding:26px 26px 20px;display:flex;flex-direction:column;gap:6px">
+    <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.24em;color:rgba(28,27,25,.4)">TUESDAY</span>
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span style="font:400 52px/1 'Libre Baskerville',Georgia,serif;color:#1c1b19">24</span>
+      <span style="font:italic 400 17px 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.5)">august</span>
+    </div>
+  </div>
+
+  <div style="padding:0 26px 14px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:#8a4b34">OVERDUE · 1</span></div>
+  <div style="padding:13px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid #8a4b34;border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Send the deposit for the studio</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">FRIDAY · 4 DAYS</span>
+    </div>
+  </div>
+
+  <div style="padding:26px 26px 14px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">DUE TODAY · 2</span></div>
+  <div style="padding:13px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Call the framer about the Kiyoshi print</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">FROM “FRAMING &amp; THE THIRD LEVAIN”</span>
+    </div>
+  </div>
+  <div style="padding:13px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Buy bread flour</span>
+  </div>
+
+  <div style="padding:26px 26px 14px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">WRITTEN TODAY</span></div>
+  <div style="padding:13px 26px 18px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:1px;background:rgba(28,27,25,.32);margin-top:12px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Framing &amp; the third levain</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">09:31 · SPOKEN</span>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;padding:20px 26px 22px;border-top:1px solid rgba(28,27,25,.09)">
+    <span style="font:italic 400 14px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.45)">Nothing else is waiting on you today.</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Note — a page, not a card</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+  <div style="padding:22px 26px 0;display:flex;justify-content:space-between;align-items:center">
+    <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5)">↩ STREAM</span>
+    <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">TUE 09:31 · SPOKEN</span>
+  </div>
+  <div style="padding:34px 30px 0;display:flex;flex-direction:column;gap:20px">
+    <span style="font:400 26px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19">Framing &amp; the third levain</span>
+    <span style="font:400 15.5px/1.8 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.82)">The levain doubled in five hours at 24°C — faster than the last two. Try a longer autolyse next time; the crumb was tight near the base and a little gummy an inch above it.</span>
+    <span style="font:400 15.5px/1.8 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.82)">Also worth trying the bread flour from the shop on Cardigan Street before writing the method down properly.</span>
+
+    <div style="display:flex;flex-direction:column;gap:12px;padding-top:8px;border-top:1px solid rgba(28,27,25,.1)">
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38);padding-top:10px">TASKS IN THIS NOTE</span>
+      <div style="display:flex;gap:13px;align-items:flex-start">
+        <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none"></div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Call the framer about the Kiyoshi print</span>
+          <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">TODAY</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:13px;align-items:flex-start">
+        <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none"></div>
+        <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Buy bread flour</span>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px;border-top:1px solid rgba(28,27,25,.1)">
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38);padding-top:10px">HEARD AS</span>
+      <span style="font:italic 400 13.5px/1.7 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.45)">“…write down that the levain doubled in five hours at twenty four degrees maybe a longer autolyse next time…”</span>
+    </div>
+  </div>
+
+  <div style="margin-top:auto;padding:14px 24px 20px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:22px;align-items:center">
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.55)">EDIT</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.55)">PIN TO WIDGET</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.55)">DUE</span>
+    <span style="margin-left:auto;font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.35)">···</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2d">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Recall — search that answers in sentences</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+  <div style="padding:26px 26px 18px;display:flex;flex-direction:column;gap:18px">
+    <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.24em;color:rgba(28,27,25,.4)">RECALL</span>
+    <div style="display:flex;align-items:baseline;gap:8px;border-bottom:1px solid rgba(28,27,25,.35);padding-bottom:10px">
+      <span style="font:400 22px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19">levain</span>
+      <span style="display:inline-block;width:1px;height:20px;background:#8a4b34;animation:nibPulse 1s steps(1) infinite"></span>
+      <span style="margin-left:auto;font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">4 HITS</span>
+    </div>
+  </div>
+
+  <div style="padding:0 26px 20px;display:flex;flex-direction:column;gap:8px">
+    <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:#8a4b34">SHORT ANSWER</span>
+    <span style="font:400 15.5px/1.75 'Libre Baskerville',Georgia,serif;color:#1c1b19">Your last three levains doubled in 5h, 7h and 9h — the fastest was the warmest at 24°C.</span>
+  </div>
+
+  <div style="padding:14px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:1px;background:rgba(28,27,25,.32);margin-top:12px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Framing &amp; the third levain</span>
+      <span style="font:400 13px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55)">The <span style="background:rgba(138,75,52,.14)">levain</span> doubled in five hours at 24°C…</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">TODAY</span>
+    </div>
+  </div>
+  <div style="padding:14px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:1px;background:rgba(28,27,25,.32);margin-top:12px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Second loaf, cold kitchen</span>
+      <span style="font:400 13px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55)">The <span style="background:rgba(138,75,52,.14)">levain</span> took nine hours at 18°C…</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">11 AUGUST</span>
+    </div>
+  </div>
+  <div style="padding:14px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:4px;flex:none"></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Buy bread flour</span>
+  </div>
+
+  <div style="padding:28px 26px 0;display:flex;flex-direction:column;gap:12px">
+    <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">TRY ASKING</span>
+    <span style="font:italic 400 14.5px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.5)">“what did I say about the framer?”</span>
+    <span style="font:italic 400 14.5px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.5)">“everything I spoke last week”</span>
+  </div>
+
+  <div style="margin-top:auto;padding:14px 24px 20px;border-top:1px solid rgba(28,27,25,.09);display:flex;justify-content:space-between">
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">STREAM</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">TODAY</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#1c1b19">RECALL</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">WIDGETS</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2e">
+<div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Widgets — the app's real settings screen</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+  <div style="padding:26px 26px 20px;display:flex;flex-direction:column;gap:8px">
+    <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.24em;color:rgba(28,27,25,.4)">WIDGETS</span>
+    <span style="font:italic 400 15px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55)">Most of Hark happens on your home screen. This is where you tune it.</span>
+  </div>
+
+  <div style="padding:16px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:16px;align-items:center">
+    <div style="width:88px;height:44px;border-radius:10px;background:rgba(252,250,246,.7);border:1px solid rgba(28,27,25,.12);padding:6px 7px;box-sizing:border-box;display:flex;flex-direction:column;gap:3px;flex:none">
+      <div style="height:2px;width:70%;background:rgba(28,27,25,.28);border-radius:1px"></div>
+      <div style="height:2px;width:86%;background:rgba(28,27,25,.28);border-radius:1px"></div>
+      <div style="height:2px;width:56%;background:rgba(28,27,25,.18);border-radius:1px"></div>
+      <div style="margin-top:auto;height:6px;border-top:1px solid rgba(28,27,25,.14)"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+      <span style="font:400 15px/1.4 'Libre Baskerville',Georgia,serif;color:#1c1b19">The Stream · 4×2</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">PLACED · TOOLBAR ON</span>
+    </div>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">EDIT</span>
+  </div>
+
+  <div style="padding:16px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:16px;align-items:center">
+    <div style="width:88px;height:44px;border-radius:10px;background:rgba(252,250,246,.7);border:1px solid rgba(28,27,25,.12);display:flex;align-items:center;padding:0 8px;box-sizing:border-box;gap:6px;flex:none">
+      <div style="height:2px;flex:1;background:rgba(28,27,25,.2);border-radius:1px"></div>
+      <div style="display:flex;gap:1.5px;align-items:center"><div style="width:1.5px;height:9px;background:#8a4b34"></div><div style="width:1.5px;height:6px;background:#8a4b34"></div><div style="width:1.5px;height:11px;background:#8a4b34"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+      <span style="font:400 15px/1.4 'Libre Baskerville',Georgia,serif;color:#1c1b19">Capture bar · 4×1</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">PLACED · TALK OPENS INSTANTLY</span>
+    </div>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">EDIT</span>
+  </div>
+
+  <div style="padding:16px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:16px;align-items:center">
+    <div style="width:88px;height:44px;display:flex;gap:6px;flex:none">
+      <div style="width:41px;border-radius:10px;background:rgba(252,250,246,.7);border:1px solid rgba(28,27,25,.12);display:flex;align-items:flex-end;padding:6px;box-sizing:border-box;font:400 13px 'Libre Baskerville',serif;color:rgba(28,27,25,.5)">3</div>
+      <div style="width:41px;border-radius:10px;background:rgba(252,250,246,.7);border:1px solid rgba(28,27,25,.12);padding:6px;box-sizing:border-box;display:flex;flex-direction:column;gap:3px"><div style="height:2px;width:80%;background:rgba(28,27,25,.22)"></div><div style="height:2px;width:60%;background:rgba(28,27,25,.22)"></div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;flex:1">
+      <span style="font:400 15px/1.4 'Libre Baskerville',Georgia,serif;color:#1c1b19">Today &amp; One note · 2×2</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">NOT PLACED</span>
+    </div>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5)">ADD</span>
+  </div>
+
+  <div style="padding:28px 26px 12px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.38)">APPEARANCE</span></div>
+  <div style="padding:14px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font:400 15px 'Libre Baskerville',Georgia,serif;color:#1c1b19">Widget transparency</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.45)">56%</span>
+    </div>
+    <div style="height:1px;background:rgba(28,27,25,.14);position:relative">
+      <div style="position:absolute;left:0;top:0;height:1px;width:56%;background:#1c1b19"></div>
+      <div style="position:absolute;left:56%;top:-4px;width:9px;height:9px;border-radius:5px;background:#1c1b19"></div>
+    </div>
+  </div>
+  <div style="padding:16px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;justify-content:space-between;align-items:center">
+    <span style="font:400 15px 'Libre Baskerville',Georgia,serif;color:#1c1b19">Theme</span>
+    <div style="display:flex;gap:14px">
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">LIGHT</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">DARK</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:#1c1b19;border-bottom:1px solid #1c1b19;padding-bottom:2px">SYSTEM</span>
+    </div>
+  </div>
+  <div style="padding:16px 26px;border-top:1px solid rgba(28,27,25,.09);display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font:400 15px 'Libre Baskerville',Georgia,serif;color:#1c1b19">Tidy spoken notes</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.4)">KEEP THE RAW TRANSCRIPT TOO</span>
+    </div>
+    <div style="width:34px;height:18px;border-radius:9px;background:#1c1b19;display:flex;align-items:center;justify-content:flex-end;padding:0 3px;box-sizing:border-box"><div style="width:12px;height:12px;border-radius:6px;background:#f4f2ed"></div></div>
+  </div>
+
+  <div style="margin-top:auto;padding:14px 24px 20px;border-top:1px solid rgba(28,27,25,.09);display:flex;justify-content:space-between">
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">STREAM</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">TODAY</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">RECALL</span>
+    <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#1c1b19">WIDGETS</span>
+  </div>
+</div>
+</x-import>
+</div>
+
+<div class="dv-opt" id="2f">
+<div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>Stream, dark — pale grey, same bones</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#33342f">
+  <div style="padding:24px 24px 14px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font:400 27px/1 'Libre Baskerville',Georgia,serif;color:#eceae4">Hark</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.42)">TUE 24 · 3 OPEN</span>
+    </div>
+    <div style="display:flex;gap:20px">
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#eceae4;border-bottom:1px solid #eceae4;padding-bottom:4px">ALL</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.45);padding-bottom:4px">OPEN</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.45);padding-bottom:4px">NOTES</span>
+    </div>
+  </div>
+
+  <div style="padding:12px 24px;display:flex;flex-direction:column;gap:9px;border-top:1px solid rgba(240,238,232,.12);background:rgba(240,238,232,.04)">
+    <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">PINNED TO WIDGET</span>
+    <span style="font:400 14.5px/1.5 'Libre Baskerville',Georgia,serif;color:#eceae4">Overheard on the 14 — “it's not a shortcut if you enjoy the long way.”</span>
+  </div>
+
+  <div style="padding:16px 24px 6px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">TODAY</span></div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(240,238,232,.12);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#eceae4">Call the framer about the Kiyoshi print</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#d99f83">FROM TALK · 09:31</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(240,238,232,.12);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:1px;background:rgba(240,238,232,.35);margin-top:12px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#eceae4">Framing &amp; the third levain</span>
+      <span style="font:400 13px/1.6 'Libre Baskerville',Georgia,serif;color:rgba(236,234,228,.6)">The levain doubled in five hours at 24°C. Try a longer autolyse next time — the crumb was tight near the base.</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.38)">09:31 · 2 TASKS INSIDE</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(240,238,232,.12);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:4px;flex:none"></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#eceae4">Buy bread flour</span>
+  </div>
+  <div style="padding:22px 24px 6px"><span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">EARLIER THIS WEEK</span></div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(240,238,232,.12);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:4px;flex:none"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#eceae4">Water the fig before Thursday</span>
+      <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.38)">THU</span>
+    </div>
+  </div>
+  <div style="padding:12px 24px;border-top:1px solid rgba(240,238,232,.12);display:flex;gap:13px;align-items:flex-start">
+    <div style="width:16px;height:16px;border:1px solid rgba(240,238,232,.4);border-radius:3px;margin-top:4px;flex:none;display:flex;align-items:center;justify-content:center"><div style="width:8px;height:8px;background:rgba(240,238,232,.45);border-radius:1px"></div></div>
+    <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:rgba(236,234,228,.4);text-decoration:line-through">Renew the library card</span>
+  </div>
+
+  <div style="margin-top:auto;position:sticky;bottom:0;padding:16px 18px 18px;background:linear-gradient(to top,#33342f 58%,rgba(51,52,47,0));display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;gap:10px">
+      <div style="flex:1;height:54px;border-radius:27px;border:1px solid rgba(240,238,232,.18);display:flex;align-items:center;justify-content:center;gap:9px">
+        <span style="font:400 16px 'Syne Mono',monospace;color:#eceae4">+</span>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.65)">WRITE</span>
+      </div>
+      <div style="flex:1;height:54px;border-radius:27px;background:#eceae4;display:flex;align-items:center;justify-content:center;gap:9px">
+        <div style="display:flex;align-items:center;gap:2.5px;height:14px">
+          <div style="width:2px;height:14px;background:#33342f;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out infinite"></div>
+          <div style="width:2px;height:14px;background:#33342f;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .22s infinite"></div>
+          <div style="width:2px;height:14px;background:#33342f;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .44s infinite"></div>
+        </div>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#33342f">TALK</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:0 8px">
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#eceae4">STREAM</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.4)">TODAY</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.4)">RECALL</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.4)">WIDGETS</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div>
+
+</div>
+<p class="dv-next">Try next: "wire these into the live prototype" · "dark versions of 2b–2e" · "add the talk-review screen as a full page"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Hark — widget-first notes &amp; tasks · Libre Baskerville / Syne Mono</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Widget family, light — glass over wallpaper, 1:1</div>
+<div style="width:398px;padding:26px 24px;border-radius:14px;background:linear-gradient(160deg,#efe9df 0%,#e6ddd2 48%,#e9e3da 100%);box-shadow:0 1px 3px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:22px">
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.42)">4 × 2 — THE STREAM</div>
+    <div style="width:350px;border-radius:24px;padding:14px 16px 8px;background:rgba(252,250,246,.56);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.10);box-shadow:0 6px 18px rgba(40,30,20,.10);display:flex;flex-direction:column;gap:11px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.5)">HARK · 3 OPEN</span>
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.35)">TUE 24</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:13px;border:1px solid rgba(28,27,25,.4);border-radius:3px;margin-top:2px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:#1c1b19">Call the framer about the Kiyoshi print</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:13px;border:1px solid rgba(28,27,25,.4);border-radius:3px;margin-top:2px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:#1c1b19">Water the fig before Thursday</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:1px;background:rgba(28,27,25,.35);margin-top:9px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.72);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sourdough — levain doubled in 5h at 24°</span>
+        </div>
+      </div>
+      <div style="height:1px;background:rgba(28,27,25,.12)"></div>
+      <div style="display:flex;align-items:stretch;gap:2px">
+        <div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 15px 'Syne Mono',monospace;color:#1c1b19">+</div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;gap:7px">
+          <div style="display:flex;align-items:center;gap:2px;height:12px">
+            <div style="width:2px;height:12px;background:#8a4b34;border-radius:1px"></div>
+            <div style="width:2px;height:12px;background:#8a4b34;border-radius:1px;transform:scaleY(.5)"></div>
+            <div style="width:2px;height:12px;background:#8a4b34;border-radius:1px;transform:scaleY(.75)"></div>
+          </div>
+          <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:#8a4b34">TALK</span>
+        </div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.6)">TODAY</div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 11px 'Syne Mono',monospace;color:rgba(28,27,25,.6)">⌕</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.42)">4 × 1 — CAPTURE BAR</div>
+    <div style="width:350px;border-radius:22px;padding:0 8px 0 18px;height:64px;background:rgba(252,250,246,.56);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.10);box-shadow:0 6px 18px rgba(40,30,20,.10);display:flex;align-items:center;gap:12px">
+      <span style="flex:1;font:italic 400 13px 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.42)">Say it, and I'll tidy it…</span>
+      <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center">
+        <div style="display:flex;align-items:center;gap:2.5px;height:15px">
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px;transform:scaleY(.4)"></div>
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px"></div>
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px;transform:scaleY(.62)"></div>
+        </div>
+      </div>
+      <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font:400 16px 'Syne Mono',monospace;color:#1c1b19">+</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:22px;align-items:flex-end">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.42)">2 × 2 — TODAY</div>
+      <div style="width:164px;height:164px;border-radius:24px;padding:16px;background:rgba(252,250,246,.56);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.10);box-shadow:0 6px 18px rgba(40,30,20,.10);display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box">
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <span style="font:400 40px/1 'Libre Baskerville',Georgia,serif;color:#1c1b19">3</span>
+          <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.45)">OPEN<br>TODAY</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:11px;height:11px;border:1px solid rgba(28,27,25,.4);border-radius:3px;margin-top:2px;flex:none"></div><span style="font:400 11px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Framer, Kiyoshi</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:11px;height:11px;border:1px solid rgba(28,27,25,.4);border-radius:3px;margin-top:2px;flex:none"></div><span style="font:400 11px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Water the fig</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.42)">2 × 2 — ONE NOTE</div>
+      <div style="width:164px;height:164px;border-radius:24px;padding:16px;background:rgba(252,250,246,.56);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.10);box-shadow:0 6px 18px rgba(40,30,20,.10);display:flex;flex-direction:column;gap:9px;box-sizing:border-box">
+        <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.4)">PINNED</span>
+        <span style="font:400 12.5px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19;overflow:hidden">Overheard on the 14 — “it's not a shortcut if you enjoy the long way.”</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Same family, dark — pale grey glass</div>
+<div style="width:398px;padding:26px 24px;border-radius:14px;background:linear-gradient(160deg,#3a3b39 0%,#313230 52%,#38393a 100%);box-shadow:0 1px 3px rgba(0,0,0,.14);display:flex;flex-direction:column;gap:22px">
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">4 × 2 — THE STREAM</div>
+    <div style="width:350px;border-radius:24px;padding:14px 16px 8px;background:rgba(236,234,228,.10);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(240,238,232,.14);display:flex;flex-direction:column;gap:11px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.55)">HARK · 3 OPEN</span>
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(240,238,232,.35)">TUE 24</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:13px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:2px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:#eceae4">Call the framer about the Kiyoshi print</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:13px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:2px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:#eceae4">Water the fig before Thursday</span>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="width:13px;height:1px;background:rgba(240,238,232,.4);margin-top:9px;flex:none"></div>
+          <span style="font:400 13px/1.35 'Libre Baskerville',Georgia,serif;color:rgba(236,234,228,.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Sourdough — levain doubled in 5h at 24°</span>
+        </div>
+      </div>
+      <div style="height:1px;background:rgba(240,238,232,.14)"></div>
+      <div style="display:flex;align-items:stretch;gap:2px">
+        <div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 15px 'Syne Mono',monospace;color:#eceae4">+</div>
+        <div style="width:1px;margin:12px 0;background:rgba(240,238,232,.13)"></div>
+        <div style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;gap:7px">
+          <div style="display:flex;align-items:center;gap:2px;height:12px">
+            <div style="width:2px;height:12px;background:#d99f83;border-radius:1px"></div>
+            <div style="width:2px;height:12px;background:#d99f83;border-radius:1px;transform:scaleY(.5)"></div>
+            <div style="width:2px;height:12px;background:#d99f83;border-radius:1px;transform:scaleY(.75)"></div>
+          </div>
+          <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:#d99f83">TALK</span>
+        </div>
+        <div style="width:1px;margin:12px 0;background:rgba(240,238,232,.13)"></div>
+        <div style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;font:400 9px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(240,238,232,.6)">TODAY</div>
+        <div style="width:1px;margin:12px 0;background:rgba(240,238,232,.13)"></div>
+        <div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 11px 'Syne Mono',monospace;color:rgba(240,238,232,.6)">⌕</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">4 × 1 — CAPTURE BAR</div>
+    <div style="width:350px;border-radius:22px;padding:0 8px 0 18px;height:64px;background:rgba(236,234,228,.10);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(240,238,232,.14);display:flex;align-items:center;gap:12px">
+      <span style="flex:1;font:italic 400 13px 'Libre Baskerville',Georgia,serif;color:rgba(236,234,228,.45)">Say it, and I'll tidy it…</span>
+      <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center">
+        <div style="display:flex;align-items:center;gap:2.5px;height:15px">
+          <div style="width:2px;height:15px;background:#d99f83;border-radius:1px;transform:scaleY(.4)"></div>
+          <div style="width:2px;height:15px;background:#d99f83;border-radius:1px"></div>
+          <div style="width:2px;height:15px;background:#d99f83;border-radius:1px;transform:scaleY(.62)"></div>
+        </div>
+      </div>
+      <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font:400 16px 'Syne Mono',monospace;color:#eceae4">+</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:22px;align-items:flex-end">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">2 × 2 — TODAY</div>
+      <div style="width:164px;height:164px;border-radius:24px;padding:16px;background:rgba(236,234,228,.10);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(240,238,232,.14);display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box">
+        <div style="display:flex;align-items:baseline;gap:7px">
+          <span style="font:400 40px/1 'Libre Baskerville',Georgia,serif;color:#eceae4">3</span>
+          <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.45)">OPEN<br>TODAY</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:11px;height:11px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:2px;flex:none"></div><span style="font:400 11px/1.3 'Libre Baskerville',Georgia,serif;color:#eceae4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Framer, Kiyoshi</span></div>
+          <div style="display:flex;gap:8px;align-items:flex-start"><div style="width:11px;height:11px;border:1px solid rgba(240,238,232,.45);border-radius:3px;margin-top:2px;flex:none"></div><span style="font:400 11px/1.3 'Libre Baskerville',Georgia,serif;color:#eceae4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Water the fig</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(240,238,232,.4)">2 × 2 — ONE NOTE</div>
+      <div style="width:164px;height:164px;border-radius:24px;padding:16px;background:rgba(236,234,228,.10);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(240,238,232,.14);display:flex;flex-direction:column;gap:9px;box-sizing:border-box">
+        <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(240,238,232,.4)">PINNED</span>
+        <span style="font:400 12.5px/1.45 'Libre Baskerville',Georgia,serif;color:#eceae4;overflow:hidden">Overheard on the 14 — “it's not a shortcut if you enjoy the long way.”</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Live prototype — tap the widget, then TALK</div>
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ false }}" hint-size="428px,908px">
+<div style="min-height:100%;display:flex;flex-direction:column;background:#f4f2ed">
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:18px;padding:0 16px 26px;background:linear-gradient(165deg,#efe9df 0%,#e6ddd2 50%,#eae4db 100%)">
+    <div style="text-align:center;font:400 44px/1 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55);margin-bottom:auto;padding-top:70px">9:30<div style="font:400 9px 'Syne Mono',monospace;letter-spacing:.24em;margin-top:8px;color:rgba(28,27,25,.4)">TUESDAY 24 AUGUST</div></div>
+
+    <div style="border-radius:26px;padding:15px 17px 9px;background:rgba(252,250,246,.56);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.10);box-shadow:0 8px 24px rgba(40,30,20,.10);display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.5)">HARK · {{ openCount }} OPEN</span>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.35)">TUE 24</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <sc-for list="{{ widgetItems }}" as="it" hint-placeholder-count="3">
+          <div onClick="{{ openStream }}" style="display:flex;align-items:flex-start;gap:11px;cursor:pointer">
+            <sc-if value="{{ it.isTask }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ it.toggle }}" style="width:14px;height:14px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none;display:flex;align-items:center;justify-content:center">
+                <sc-if value="{{ it.done }}" hint-placeholder-val="{{ false }}"><div style="width:7px;height:7px;background:#8a4b34;border-radius:1px"></div></sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ it.isNote }}" hint-placeholder-val="{{ false }}">
+              <div style="width:14px;height:1px;background:rgba(28,27,25,.35);margin-top:10px;flex:none"></div>
+            </sc-if>
+            <span style="font:400 13.5px/1.35 'Libre Baskerville',Georgia,serif;color:#1c1b19;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:{{ it.op }};text-decoration:{{ it.strike }}">{{ it.line }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="height:1px;background:rgba(28,27,25,.12)"></div>
+      <div style="display:flex;align-items:stretch;gap:2px">
+        <div onClick="{{ openCompose }}" style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 16px 'Syne Mono',monospace;color:#1c1b19;cursor:pointer">+</div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div onClick="{{ openTalk }}" style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer">
+          <div style="display:flex;align-items:center;gap:2.5px;height:13px">
+            <div style="width:2px;height:13px;background:#8a4b34;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out infinite"></div>
+            <div style="width:2px;height:13px;background:#8a4b34;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .22s infinite"></div>
+            <div style="width:2px;height:13px;background:#8a4b34;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .44s infinite"></div>
+          </div>
+          <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.18em;color:#8a4b34">TALK</span>
+        </div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div onClick="{{ openStream }}" style="flex:2;height:44px;display:flex;align-items:center;justify-content:center;font:400 9.5px 'Syne Mono',monospace;letter-spacing:.18em;color:rgba(28,27,25,.6);cursor:pointer">TODAY</div>
+        <div style="width:1px;margin:12px 0;background:rgba(28,27,25,.1)"></div>
+        <div onClick="{{ openStream }}" style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;font:400 12px 'Syne Mono',monospace;color:rgba(28,27,25,.6);cursor:pointer">⌕</div>
+      </div>
+    </div>
+
+    <div onClick="{{ openTalk }}" style="border-radius:22px;padding:0 8px 0 18px;height:62px;background:rgba(252,250,246,.5);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(28,27,25,.09);display:flex;align-items:center;gap:12px;cursor:pointer">
+      <span style="flex:1;font:italic 400 13px 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.42)">Say it, and I'll tidy it…</span>
+      <div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center">
+        <div style="display:flex;align-items:center;gap:2.5px;height:15px">
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px;transform:scaleY(.4)"></div>
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px"></div>
+          <div style="width:2px;height:15px;background:#8a4b34;border-radius:1px;transform:scaleY(.62)"></div>
+        </div>
+      </div>
+      <div onClick="{{ openCompose }}" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font:400 17px 'Syne Mono',monospace;color:#1c1b19">+</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isStream }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;background:#f4f2ed">
+    <div style="padding:22px 22px 12px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font:400 26px/1 'Libre Baskerville',Georgia,serif;color:#1c1b19">Hark</span>
+        <span onClick="{{ goHome }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.45);cursor:pointer">HOME ↩</span>
+      </div>
+      <div style="display:flex;gap:18px">
+        <span onClick="{{ setFilterAll }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:{{ fAll }};border-bottom:1px solid {{ fAllB }};padding-bottom:3px;cursor:pointer">ALL</span>
+        <span onClick="{{ setFilterOpen }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:{{ fOpen }};border-bottom:1px solid {{ fOpenB }};padding-bottom:3px;cursor:pointer">OPEN</span>
+        <span onClick="{{ setFilterNotes }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:{{ fNotes }};border-bottom:1px solid {{ fNotesB }};padding-bottom:3px;cursor:pointer">NOTES</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column">
+      <sc-for list="{{ streamItems }}" as="it" hint-placeholder-count="5">
+        <div style="padding:16px 22px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:13px;align-items:flex-start">
+          <sc-if value="{{ it.isTask }}" hint-placeholder-val="{{ true }}">
+            <div onClick="{{ it.toggle }}" style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <sc-if value="{{ it.done }}" hint-placeholder-val="{{ false }}"><div style="width:8px;height:8px;background:#8a4b34;border-radius:1px"></div></sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ it.isNote }}" hint-placeholder-val="{{ false }}">
+            <div style="width:16px;height:1px;background:rgba(28,27,25,.32);margin-top:11px;flex:none"></div>
+          </sc-if>
+          <div onClick="{{ it.open }}" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;cursor:pointer">
+            <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19;opacity:{{ it.op }};text-decoration:{{ it.strike }}">{{ it.line }}</span>
+            <sc-if value="{{ it.hasBody }}" hint-placeholder-val="{{ false }}">
+              <span style="font:400 13px/1.55 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55);overflow:hidden;display:block;max-height:42px">{{ it.body }}</span>
+            </sc-if>
+            <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">{{ it.meta }}</span>
+          </div>
+        </div>
+      </sc-for>
+      <div style="padding:16px 22px;border-top:1px solid rgba(28,27,25,.09)"></div>
+    </div>
+    <div style="position:sticky;bottom:0;padding:12px 16px 16px;background:linear-gradient(to top,#f4f2ed 55%,rgba(244,242,237,0));display:flex;gap:10px">
+      <div onClick="{{ openCompose }}" style="flex:1;height:52px;border-radius:26px;border:1px solid rgba(28,27,25,.14);background:rgba(250,248,244,.9);display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer">
+        <span style="font:400 15px 'Syne Mono',monospace;color:#1c1b19">+</span>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.6)">WRITE</span>
+      </div>
+      <div onClick="{{ openTalk }}" style="flex:1;height:52px;border-radius:26px;background:#1c1b19;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer">
+        <div style="display:flex;align-items:center;gap:2.5px;height:14px">
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out infinite"></div>
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .22s infinite"></div>
+          <div style="width:2px;height:14px;background:#f4f2ed;border-radius:1px;transform-origin:center;animation:nibBar 1.1s ease-in-out .44s infinite"></div>
+        </div>
+        <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#f4f2ed">TALK</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isNote }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;background:#f4f2ed">
+    <div style="padding:20px 22px 8px;display:flex;justify-content:space-between;align-items:center">
+      <span onClick="{{ openStream }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5);cursor:pointer">↩ STREAM</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.38)">{{ noteMeta }}</span>
+    </div>
+    <div style="padding:14px 26px 30px;display:flex;flex-direction:column;gap:16px">
+      <span style="font:400 24px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19">{{ noteTitle }}</span>
+      <span style="font:400 15px/1.75 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.8);white-space:pre-line">{{ noteBody }}</span>
+      <div style="height:1px;background:rgba(28,27,25,.1);margin-top:6px"></div>
+      <div style="display:flex;gap:14px">
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.45)">MAKE TASK</span>
+        <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.45)">PIN TO WIDGET</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isCompose }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;background:#f4f2ed">
+    <div style="padding:20px 22px 8px;display:flex;justify-content:space-between;align-items:center">
+      <span onClick="{{ openStream }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5);cursor:pointer">↩ CANCEL</span>
+      <span onClick="{{ openStream }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34;cursor:pointer">KEEP</span>
+    </div>
+    <div style="padding:18px 26px;display:flex;flex-direction:column;gap:14px">
+      <span style="font:italic 400 22px/1.3 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.3)">Title</span>
+      <span style="font:400 15px/1.75 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.28)">Start writing. A line that begins with a dash becomes a task.<span style="display:inline-block;width:1px;height:16px;background:#8a4b34;vertical-align:-2px;margin-left:2px;animation:nibPulse 1s steps(1) infinite"></span></span>
+    </div>
+    <div style="margin-top:auto;padding:10px 20px;border-top:1px solid rgba(28,27,25,.09);display:flex;gap:20px;align-items:center">
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5)">— TASK</span>
+      <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5)">DUE</span>
+      <span onClick="{{ openTalk }}" style="font:400 9px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34;cursor:pointer">TALK INSTEAD</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isTalk }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;flex-direction:column;background:#f4f2ed">
+    <div style="padding:20px 22px 0;display:flex;justify-content:space-between;align-items:center">
+      <span onClick="{{ goHome }}" style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.5);cursor:pointer">↩ CLOSE</span>
+      <span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.4)">{{ talkLabel }}</span>
+    </div>
+
+    <div style="flex:1;padding:34px 26px 20px;display:flex;flex-direction:column;gap:22px">
+      <sc-if value="{{ showRaw }}" hint-placeholder-val="{{ true }}">
+        <span style="font:400 17px/1.7 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.55)">{{ rawText }}<span style="display:inline-block;width:6px;height:17px;background:rgba(138,75,52,.5);vertical-align:-3px;margin-left:3px;animation:nibPulse 1s steps(1) infinite"></span></span>
+      </sc-if>
+
+      <sc-if value="{{ showResult }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:18px;animation:nibFade .5s ease both">
+          <span style="font:400 9px 'Syne Mono',monospace;letter-spacing:.22em;color:rgba(28,27,25,.4)">TIDIED · 1 NOTE, 2 TASKS</span>
+          <span style="font:400 22px/1.3 'Libre Baskerville',Georgia,serif;color:#1c1b19">Framing &amp; the third levain</span>
+          <span style="font:400 15px/1.75 'Libre Baskerville',Georgia,serif;color:rgba(28,27,25,.8)">The levain doubled in five hours at 24°C. Try a longer autolyse next time — the crumb was tight near the base.</span>
+          <div style="display:flex;flex-direction:column;gap:12px;padding-top:4px;border-top:1px solid rgba(28,27,25,.1)">
+            <div style="display:flex;gap:12px;align-items:flex-start;padding-top:10px">
+              <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none"></div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Call the framer about the Kiyoshi print</span>
+                <span style="font:400 8.5px 'Syne Mono',monospace;letter-spacing:.2em;color:#8a4b34">TOMORROW · HEARD “TOMORROW”</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <div style="width:16px;height:16px;border:1px solid rgba(28,27,25,.42);border-radius:3px;margin-top:3px;flex:none"></div>
+              <span style="font:400 15px/1.45 'Libre Baskerville',Georgia,serif;color:#1c1b19">Buy bread flour</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="padding:14px 20px 20px;display:flex;flex-direction:column;gap:16px;align-items:center">
+      <sc-if value="{{ isListening }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:4px;height:44px">
+          <div style="width:3px;height:14px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out infinite"></div>
+          <div style="width:3px;height:26px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .1s infinite"></div>
+          <div style="width:3px;height:40px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .2s infinite"></div>
+          <div style="width:3px;height:22px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .3s infinite"></div>
+          <div style="width:3px;height:34px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .4s infinite"></div>
+          <div style="width:3px;height:16px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .5s infinite"></div>
+          <div style="width:3px;height:28px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .6s infinite"></div>
+          <div style="width:3px;height:12px;background:#8a4b34;border-radius:2px;transform-origin:center;animation:nibBar .9s ease-in-out .7s infinite"></div>
+        </div>
+        <div onClick="{{ tidy }}" style="width:100%;height:54px;border-radius:27px;background:#1c1b19;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <span style="font:400 10px 'Syne Mono',monospace;letter-spacing:.24em;color:#f4f2ed">STOP &amp; TIDY</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isTidying }}" hint-placeholder-val="{{ false }}">
+        <div style="height:44px;display:flex;align-items:center"><span style="font:400 10px 'Syne Mono',monospace;letter-spacing:.24em;color:rgba(28,27,25,.5);animation:nibPulse 1.2s ease-in-out infinite">TIDYING…</span></div>
+      </sc-if>
+      <sc-if value="{{ showResult }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;display:flex;gap:10px">
+          <div onClick="{{ replay }}" style="flex:1;height:54px;border-radius:27px;border:1px solid rgba(28,27,25,.16);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font:400 9.5px 'Syne Mono',monospace;letter-spacing:.2em;color:rgba(28,27,25,.6)">AGAIN</span></div>
+          <div onClick="{{ keep }}" style="flex:2;height:54px;border-radius:27px;background:#1c1b19;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font:400 10px 'Syne Mono',monospace;letter-spacing:.24em;color:#f4f2ed">KEEP ALL</span></div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-import>
+</div>
+
+</div>
+<p class="dv-next">Try next: "make the stream widget denser" · "show the dark app screens too" · "new layout directions for the stream"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1360,&quot;height&quot;:1180}}">
+const RAW = "so remind me to call the framer tomorrow about the kiyoshi print and also write down that the levain doubled in five hours at twenty four degrees maybe a longer autolyse next time the crumb was tight near the base oh and buy bread flour";
+
+class Component extends DCLogic {
+  state = {
+    screen: 'home',
+    filter: 'all',
+    openId: null,
+    talk: 'listening',
+    raw: '',
+    items: [
+      { id: 1, type: 'task', line: 'Call the framer about the Kiyoshi print', done: false, meta: 'TODAY' },
+      { id: 2, type: 'note', line: 'Sourdough — third attempt', body: 'Levain doubled in 5h at 24°C. Longer autolyse next time; the crumb was tight near the base.', meta: 'YESTERDAY' },
+      { id: 3, type: 'task', line: 'Water the fig before Thursday', done: false, meta: 'THU' },
+      { id: 4, type: 'note', line: 'Overheard on the 14', body: '“It\u2019s not a shortcut if you enjoy the long way.”', meta: 'MON' },
+      { id: 5, type: 'task', line: 'Renew the library card', done: true, meta: 'WED' },
+    ],
+  };
+
+  componentWillUnmount() { clearInterval(this._t); clearTimeout(this._d); }
+
+  startTyping() {
+    clearInterval(this._t);
+    let i = 0;
+    this.setState({ raw: '', talk: 'listening' });
+    this._t = setInterval(() => {
+      i += 2;
+      if (i >= RAW.length) { i = RAW.length; clearInterval(this._t); }
+      this.setState({ raw: RAW.slice(0, i) });
+    }, 45);
+  }
+
+  decorate(it) {
+    return {
+      ...it,
+      isTask: it.type === 'task',
+      isNote: it.type === 'note',
+      hasBody: !!it.body,
+      op: it.done ? 0.4 : 1,
+      strike: it.done ? 'line-through' : 'none',
+      toggle: (e) => {
+        if (e) e.stopPropagation();
+        this.setState(s => ({ items: s.items.map(x => x.id === it.id ? { ...x, done: !x.done } : x) }));
+      },
+      open: () => this.setState({ screen: it.type === 'note' ? 'note' : 'stream', openId: it.id }),
+    };
+  }
+
+  renderVals() {
+    const { items, filter, screen, talk, raw, openId } = this.state;
+    const note = items.find(i => i.id === openId) || items[1];
+    const shown = items.filter(i => filter === 'all' ? true : filter === 'open' ? (i.type === 'task' && !i.done) : i.type === 'note');
+    const act = '#1c1b19', idle = 'rgba(28,27,25,.42)', tr = 'transparent';
+    return {
+      isHome: screen === 'home', isStream: screen === 'stream', isNote: screen === 'note',
+      isCompose: screen === 'compose', isTalk: screen === 'talk',
+      openCount: items.filter(i => i.type === 'task' && !i.done).length,
+      widgetItems: items.filter(i => !(i.type === 'task' && i.done)).slice(0, 3).map(i => this.decorate(i)),
+      streamItems: shown.map(i => this.decorate(i)),
+      noteTitle: note.line, noteBody: note.body || '', noteMeta: note.meta,
+      fAll: filter === 'all' ? act : idle, fAllB: filter === 'all' ? act : tr,
+      fOpen: filter === 'open' ? act : idle, fOpenB: filter === 'open' ? act : tr,
+      fNotes: filter === 'notes' ? act : idle, fNotesB: filter === 'notes' ? act : tr,
+      setFilterAll: () => this.setState({ filter: 'all' }),
+      setFilterOpen: () => this.setState({ filter: 'open' }),
+      setFilterNotes: () => this.setState({ filter: 'notes' }),
+      goHome: () => this.setState({ screen: 'home' }),
+      openStream: () => this.setState({ screen: 'stream' }),
+      openCompose: (e) => { if (e) e.stopPropagation(); this.setState({ screen: 'compose' }); },
+      openTalk: (e) => { if (e) e.stopPropagation(); this.setState({ screen: 'talk' }); this.startTyping(); },
+      isListening: talk === 'listening', isTidying: talk === 'tidying',
+      showRaw: talk !== 'done', showResult: talk === 'done',
+      rawText: raw,
+      talkLabel: talk === 'done' ? 'TIDIED' : talk === 'tidying' ? 'THINKING' : 'LISTENING',
+      tidy: () => {
+        clearInterval(this._t);
+        this.setState({ talk: 'tidying' });
+        this._d = setTimeout(() => this.setState({ talk: 'done' }), 1100);
+      },
+      replay: () => this.startTyping(),
+      keep: () => this.setState({ screen: 'stream', talk: 'listening', raw: '' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

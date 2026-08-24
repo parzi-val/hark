@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Google Assistant Capability: Create Note -->
+    <capability android:name="actions.intent.CREATE_NOTE">
+        <intent
+            android:action="com.google.android.gms.actions.CREATE_NOTE"
+            android:targetPackage="com.hark"
+            android:targetClass="com.hark.assistant.AssistantActivity">
+            <parameter
+                android:name="note.text"
+                android:key="noteText" />
+        </intent>
+    </capability>
+
+    <!-- Google Assistant Capability: Create Task / Todo -->
+    <capability android:name="actions.intent.CREATE_TASK_LIST">
+        <intent
+            android:action="com.google.android.gms.actions.CREATE_TODO_ITEM"
+            android:targetPackage="com.hark"
+            android:targetClass="com.hark.assistant.AssistantActivity">
+            <parameter
+                android:name="taskList.name"
+                android:key="taskName" />
+        </intent>
+    </capability>
+
+    <!-- Long-press Launcher Shortcut: Talk -->
+    <shortcut
+        android:shortcutId="shortcut_talk"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_talk_short"
+        android:shortcutLongLabel="@string/shortcut_talk_long">
+        <intent
+            android:action="com.hark.action.TALK"
+            android:targetPackage="com.hark"
+            android:targetClass="com.hark.MainActivity" />
+    </shortcut>
+
+    <!-- Long-press Launcher Shortcut: Write -->
+    <shortcut
+        android:shortcutId="shortcut_write"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_write_short"
+        android:shortcutLongLabel="@string/shortcut_write_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.hark"
+            android:targetClass="com.hark.MainActivity" />
+    </shortcut>
+
+</shortcuts>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Hark" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:scrollbars">none</item>
+        <item name="android:scrollbarThumbVertical">@null</item>
+        <item name="android:scrollbarTrackVertical">@null</item>
+        <item name="android:fastScrollEnabled">false</item>
+        <item name="android:overScrollMode">never</item>
+        <item name="android:listViewStyle">@style/HarkWidgetListView</item>
+    </style>
+
+    <style name="HarkWidgetListView" parent="android:Widget.ListView">
+        <item name="android:scrollbars">none</item>
+        <item name="android:scrollbarThumbVertical">@null</item>
+        <item name="android:scrollbarTrackVertical">@null</item>
+        <item name="android:fastScrollEnabled">false</item>
+        <item name="android:overScrollMode">never</item>
+        <item name="android:divider">@null</item>
+        <item name="android:dividerHeight">0dp</item>
+    </style>
+</resources>
