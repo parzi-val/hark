@@ -29,7 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hark.ai.TidyService
+import com.hark.ai.HarkService
 import com.hark.data.local.Source
 import com.hark.data.repo.HarkRepository
 import com.hark.ui.components.MetaLabel
@@ -38,13 +38,12 @@ import com.hark.ui.harkViewModel
 import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkType
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 enum class ComposeMode { NOTE, TASK }
 
 @Composable
 fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
-    val vm: ComposeViewModel = harkViewModel { ComposeViewModel(it.repository, it.tidyService) }
+    val vm: ComposeViewModel = harkViewModel { ComposeViewModel(it.repository, it.harkService) }
     val c = Hark.colors
 
     var mode by remember { mutableStateOf(ComposeMode.NOTE) }
@@ -154,6 +153,12 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                         textStyle = HarkType.bodyRelaxed,
                     )
                 }
+
+                MetaLabel(
+                    text = "Extract tasks: " + if (vm.extractTasks) "ON" else "OFF",
+                    color = if (vm.extractTasks) c.rust else c.inkFaint,
+                    modifier = Modifier.clickable { vm.toggleExtractTasks() },
+                )
             } else {
                 // TASK MODE
                 Text("New Checklist Item", style = HarkType.title, color = c.ink)
@@ -235,7 +240,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                     )
                 }
 
-                // 2. TIDY & SAVE (with AI task extraction)
+                // 2. TIDY & SAVE (with AI processing)
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -287,12 +292,18 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
 
 class ComposeViewModel(
     private val repo: HarkRepository,
-    private val tidy: TidyService,
+    private val harkService: HarkService,
 ) : ViewModel() {
     var saving by mutableStateOf(false)
         private set
     var tidying by mutableStateOf(false)
         private set
+    var extractTasks by mutableStateOf(true)
+        private set
+
+    fun toggleExtractTasks() {
+        extractTasks = !extractTasks
+    }
 
     fun saveRaw(title: String, body: String, onDone: () -> Unit) {
         if (saving || tidying) return
@@ -309,8 +320,13 @@ class ComposeViewModel(
         tidying = true
         val text = listOf(title.trim(), body.trim()).filter { it.isNotBlank() }.joinToString("\n\n")
         viewModelScope.launch {
-            val result = tidy.tidy(text, LocalDate.now())
-            repo.saveTidied(result, heardAs = null, source = Source.TYPED)
+            val notes = repo.recentNoteRefs()
+            val action = harkService.process(
+                transcript = text,
+                extractTasks = extractTasks,
+                notes = notes,
+            )
+            repo.applyAction(action, text, Source.TYPED)
             tidying = false
             onDone()
         }

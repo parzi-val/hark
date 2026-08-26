@@ -2,6 +2,7 @@ package com.hark.ui.note
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hark.ai.HarkService
 import com.hark.data.local.NoteEntity
 import com.hark.data.local.TaskEntity
 import com.hark.data.repo.HarkRepository
@@ -12,16 +13,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 data class NoteDetailUiState(
     val note: NoteEntity? = null,
     val tasks: List<TaskEntity> = emptyList(),
     val isLoading: Boolean = true,
+    val isShaping: Boolean = false,
+    val shapeError: String? = null,
 )
 
 class NoteDetailViewModel(
     private val noteId: Long,
     private val repo: HarkRepository,
+    private val harkService: HarkService,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(NoteDetailUiState())
@@ -59,6 +64,53 @@ class NoteDetailViewModel(
         }
     }
 
+    fun toggleShelf() {
+        val current = _ui.value.note ?: return
+        viewModelScope.launch {
+            repo.setShelf(noteId, !current.shelf)
+        }
+    }
+
+    fun shape(currentTitle: String, currentBody: String, onResult: (String, String) -> Unit = { _, _ -> }) {
+        if (_ui.value.isShaping) return
+        val note = _ui.value.note ?: return
+        val source = if (!note.heardAs.isNullOrBlank()) note.heardAs!! else currentBody
+        if (source.isBlank()) {
+            _ui.update { it.copy(shapeError = "Note is empty.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _ui.update { it.copy(isShaping = true, shapeError = null) }
+            try {
+                val result = harkService.shape(
+                    title = currentTitle,
+                    body = source,
+                    extractTasks = false,
+                )
+                repo.updateNote(noteId, result.title, result.body)
+                _ui.update {
+                    it.copy(
+                        isShaping = false,
+                        note = note.copy(title = result.title, body = result.body, updatedAt = Instant.now()),
+                    )
+                }
+                onResult(result.title, result.body)
+            } catch (e: Exception) {
+                _ui.update {
+                    it.copy(
+                        isShaping = false,
+                        shapeError = e.message ?: "Failed to shape note. Check your API key in Settings.",
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearShapeError() {
+        _ui.update { it.copy(shapeError = null) }
+    }
+
     fun updateContent(title: String, body: String) {
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
@@ -71,6 +123,19 @@ class NoteDetailViewModel(
         autoSaveJob?.cancel()
         viewModelScope.launch {
             repo.updateNote(noteId, title, body)
+        }
+    }
+
+    fun closeNote(title: String, body: String, onClose: () -> Unit) {
+        autoSaveJob?.cancel()
+        viewModelScope.launch {
+            val tasks = _ui.value.tasks
+            if (title.isBlank() && body.isBlank() && tasks.isEmpty()) {
+                repo.deleteNote(noteId)
+            } else {
+                repo.updateNote(noteId, title, body)
+            }
+            onClose()
         }
     }
 

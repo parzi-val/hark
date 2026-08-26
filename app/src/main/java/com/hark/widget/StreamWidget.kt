@@ -112,7 +112,7 @@ class StreamWidget : GlanceAppWidget() {
             val openCount = tasks.count { !it.done }
             val childrenByNote = tasks.filter { it.sourceNoteId != null }.groupBy { it.sourceNoteId }
             val items = buildList {
-                notes.forEach { note -> add(StreamItem.Note(note, childrenByNote[note.id].orEmpty().sortedBy { it.createdAt })) }
+                notes.filter { !it.shelf }.forEach { note -> add(StreamItem.Note(note, childrenByNote[note.id].orEmpty().sortedBy { it.createdAt })) }
                 tasks.filter { it.sourceNoteId == null }.forEach { add(StreamItem.Task(it)) }
             }.sortedWith(
                 compareByDescending<StreamItem> { (it as? StreamItem.Note)?.note?.pinnedToWidget ?: false }

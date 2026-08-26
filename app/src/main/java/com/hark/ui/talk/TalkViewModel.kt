@@ -2,11 +2,13 @@ package com.hark.ui.talk
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hark.ai.HarkService
 import com.hark.ai.OpenAiClient
-import com.hark.ai.TidyService
 import com.hark.data.local.Source
 import com.hark.data.repo.HarkRepository
-import com.hark.domain.TidyResult
+import com.hark.domain.Action
+import com.hark.domain.FocusedNote
+import com.hark.domain.HarkAction
 import com.hark.speech.AudioRecorder
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,7 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 enum class TalkPhase { IDLE, LISTENING, TRANSCRIBING, TIDYING, RESULT, ERROR }
 
@@ -25,19 +26,22 @@ data class TalkUiState(
     val transcript: String = "",
     val level: Float = 0f,
     val elapsed: Int = 0,
-    val result: TidyResult? = null,
+    val extractTasks: Boolean = true,
+    val pending: HarkAction? = null,
+    val targetTitle: String? = null,
+    val focusedNote: FocusedNote? = null,
     val error: String? = null,
 )
 
 /**
- * Talk flow: record mic audio → Whisper transcription → LLM tidy → keep.
- * On-device recognition was too lossy, so speech goes through Groq Whisper (same key).
+ * Talk flow: record mic audio → Whisper transcription → HarkAction LLM processing → keep.
  */
 class TalkViewModel(
     private val repo: HarkRepository,
-    private val tidy: TidyService,
+    private val harkService: HarkService,
     private val client: OpenAiClient,
     private val recorderFactory: () -> AudioRecorder,
+    private val focusedNoteId: Long? = null,
 ) : ViewModel() {
 
     private val _ui = MutableStateFlow(TalkUiState())
@@ -46,6 +50,15 @@ class TalkViewModel(
     private var recorder: AudioRecorder? = null
     private var meterJob: Job? = null
     private var transcript = ""
+
+    init {
+        if (focusedNoteId != null) {
+            viewModelScope.launch {
+                val focused = repo.focusedNoteOf(focusedNoteId)
+                _ui.update { it.copy(focusedNote = focused) }
+            }
+        }
+    }
 
     /** Start recording. Call only after RECORD_AUDIO is granted. */
     fun start() {
@@ -57,7 +70,7 @@ class TalkViewModel(
             _ui.value = TalkUiState(phase = TalkPhase.ERROR, error = "Couldn't start the microphone.")
             return
         }
-        _ui.value = TalkUiState(phase = TalkPhase.LISTENING)
+        _ui.update { it.copy(phase = TalkPhase.LISTENING, pending = null, error = null) }
         val startedAt = System.currentTimeMillis()
         meterJob = viewModelScope.launch {
             while (isActive) {
@@ -67,6 +80,10 @@ class TalkViewModel(
                 delay(80)
             }
         }
+    }
+
+    fun toggleExtractTasks() {
+        _ui.update { it.copy(extractTasks = !it.extractTasks) }
     }
 
     fun stopAndTidy() {
@@ -93,8 +110,37 @@ class TalkViewModel(
             }
             transcript = text
             _ui.update { it.copy(transcript = text, phase = TalkPhase.TIDYING) }
-            val result = tidy.tidy(text, LocalDate.now())
-            _ui.update { it.copy(phase = TalkPhase.RESULT, result = result) }
+
+            val notes = repo.recentNoteRefs()
+            val focused = _ui.value.focusedNote
+            val willShelf = focused == null && text.length > HarkRepository.SHELF_THRESHOLD
+            val extract = _ui.value.extractTasks && !willShelf
+
+            val action = harkService.process(
+                transcript = text,
+                extractTasks = extract,
+                notes = notes,
+                focusedNote = focused,
+            )
+
+            // Resolve target title for UI confirmation
+            val targetTitle = if (action.action != Action.CREATE && action.targetNoteId != null) {
+                if (focused?.id == action.targetNoteId) {
+                    focused.title
+                } else {
+                    notes.find { it.id == action.targetNoteId }?.title
+                }
+            } else {
+                null
+            }
+
+            _ui.update {
+                it.copy(
+                    phase = TalkPhase.RESULT,
+                    pending = action,
+                    targetTitle = targetTitle,
+                )
+            }
         }
     }
 
@@ -108,12 +154,12 @@ class TalkViewModel(
         _ui.update { it.copy(phase = TalkPhase.ERROR, error = message) }
     }
 
-    fun keep(onDone: () -> Unit) {
-        val result = _ui.value.result ?: return
+    fun keep(onDone: (Long) -> Unit) {
+        val action = _ui.value.pending ?: return
         val heard = transcript
         viewModelScope.launch {
-            repo.saveTidied(result, heardAs = heard.ifBlank { null }, source = Source.SPOKEN)
-            onDone()
+            val noteId = repo.applyAction(action, heard.ifBlank { action.body }, Source.SPOKEN)
+            onDone(noteId)
         }
     }
 

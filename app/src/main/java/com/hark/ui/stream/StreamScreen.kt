@@ -66,6 +66,8 @@ fun StreamScreen(
     onWrite: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenNote: (Long) -> Unit = {},
+    onToggleShelf: () -> Unit = {},
+    onNewShelfNote: () -> Unit = {},
 ) {
     val vm: StreamViewModel = harkViewModel { StreamViewModel(it.repository) }
     val settingsVm: com.hark.ui.settings.SettingsViewModel = harkViewModel { com.hark.ui.settings.SettingsViewModel(it.settingsStore) }
@@ -101,8 +103,13 @@ fun StreamScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    Text("Hark", style = HarkType.title, color = c.ink)
-                    MetaLabel(headerMeta(state.openCount), color = c.inkFaint)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Text("Hark", style = HarkType.title, color = c.ink)
+                        MetaLabel(headerMeta(state.openCount), color = c.inkFaint)
+                    }
                 }
 
                 if (!settings.isConfigured) {
@@ -122,10 +129,33 @@ fun StreamScreen(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    FilterTab("ALL", StreamFilter.ALL, state.filter, vm::setFilter)
-                    FilterTab("OPEN", StreamFilter.OPEN, state.filter, vm::setFilter)
-                    FilterTab("NOTES", StreamFilter.NOTES, state.filter, vm::setFilter)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        FilterTab("ALL", StreamFilter.ALL, state.filter, vm::setFilter)
+                        FilterTab("OPEN", StreamFilter.OPEN, state.filter, vm::setFilter)
+                        FilterTab("NOTES", StreamFilter.NOTES, state.filter, vm::setFilter)
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clickable { onToggleShelf() }
+                            .padding(bottom = 3.dp),
+                    ) {
+                        com.hark.ui.components.ShelfIcon(
+                            modifier = Modifier.size(13.dp),
+                            color = c.inkMuted,
+                        )
+                        Text(
+                            text = "SHELF · ${state.shelfCount}",
+                            style = HarkType.label,
+                            color = c.inkMuted,
+                        )
+                    }
                 }
             }
 

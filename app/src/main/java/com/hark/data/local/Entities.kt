@@ -21,6 +21,7 @@ data class NoteEntity(
     val heardAs: String? = null,
     val source: Source = Source.TYPED,
     val pinnedToWidget: Boolean = false,
+    val shelf: Boolean = false,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
     // Sync prep — unused in v1, present so the schema never needs a migration for it.

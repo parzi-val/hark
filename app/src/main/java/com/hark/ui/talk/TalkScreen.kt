@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,7 +31,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.hark.domain.TidyResult
+import com.hark.domain.Action
+import com.hark.domain.HarkAction
+import com.hark.ui.components.HarkMarkdown
 import com.hark.ui.components.ListeningWave
 import com.hark.ui.components.MetaLabel
 import com.hark.ui.components.SectionLabel
@@ -41,8 +42,14 @@ import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkType
 
 @Composable
-fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
-    val vm: TalkViewModel = harkViewModel { TalkViewModel(it.repository, it.tidyService, it.openAiClient, it::newAudioRecorder) }
+fun TalkScreen(
+    onClose: () -> Unit,
+    onKept: (Long) -> Unit,
+    focusedNoteId: Long? = null,
+) {
+    val vm: TalkViewModel = harkViewModel(key = "talk-${focusedNoteId ?: "new"}") {
+        TalkViewModel(it.repository, it.harkService, it.openAiClient, it::newAudioRecorder, focusedNoteId)
+    }
     val state by vm.ui.collectAsStateWithLifecycle()
     val c = Hark.colors
     val context = LocalContextCompat()
@@ -68,16 +75,20 @@ fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
 
         // Body
         Column(
-            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 26.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            val result = state.result
+            val pending = state.pending
             when {
                 state.phase == TalkPhase.ERROR ->
                     Text(state.error ?: "Something went wrong.", style = HarkType.bodyRelaxed, color = c.rust)
 
-                state.phase == TalkPhase.RESULT && result != null -> ResultView(result)
+                state.phase == TalkPhase.RESULT && pending != null ->
+                    ResultView(pending, state.targetTitle)
 
                 else -> Text(
                     text = state.transcript.ifBlank { "Listening… say what's on your mind." },
@@ -96,7 +107,17 @@ fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
             when (state.phase) {
                 TalkPhase.LISTENING -> {
                     ListeningWave(level = state.level, color = c.rust, modifier = Modifier.height(44.dp))
-                    MetaLabel(formatElapsed(state.elapsed), color = c.inkFaint)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MetaLabel(formatElapsed(state.elapsed), color = c.inkFaint)
+                        MetaLabel(
+                            text = "Extract tasks: " + if (state.extractTasks) "ON" else "OFF",
+                            color = if (state.extractTasks) c.rust else c.inkFaint,
+                            modifier = Modifier.clickable { vm.toggleExtractTasks() },
+                        )
+                    }
                     FilledPill("STOP & TIDY", onClick = vm::stopAndTidy)
                 }
 
@@ -108,7 +129,7 @@ fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
 
                 TalkPhase.RESULT -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedPill("AGAIN", Modifier.weight(1f), onClick = vm::again)
-                    FilledPill("KEEP ALL", Modifier.weight(2f), onClick = { vm.keep(onKept) })
+                    FilledPill("KEEP", Modifier.weight(2f), onClick = { vm.keep(onKept) })
                 }
 
                 TalkPhase.ERROR -> FilledPill("TRY AGAIN", onClick = { ensureListening() })
@@ -119,14 +140,28 @@ fun TalkScreen(onClose: () -> Unit, onKept: () -> Unit) {
 }
 
 @Composable
-private fun ResultView(result: TidyResult) {
+private fun ResultView(action: HarkAction, targetTitle: String?) {
     val c = Hark.colors
-    SectionLabel("Tidied · 1 note, ${result.tasks.size} tasks")
-    Text(result.title, style = HarkType.title, color = c.ink)
-    if (result.note.isNotBlank()) Text(result.note, style = HarkType.bodyRelaxed, color = c.ink.copy(alpha = 0.82f))
-    if (result.tasks.isNotEmpty()) {
+
+    val headerText = when (action.action) {
+        Action.APPEND -> "→ APPENDING TO \"${targetTitle ?: "a note"}\""
+        Action.EDIT -> "→ EDITING \"${targetTitle ?: "a note"}\""
+        Action.CREATE -> "NEW NOTE"
+    }
+
+    SectionLabel(headerText)
+
+    if (action.action != Action.APPEND && !action.title.isNullOrBlank()) {
+        Text(action.title, style = HarkType.title, color = c.ink)
+    }
+
+    if (action.body.isNotBlank()) {
+        HarkMarkdown(action.body)
+    }
+
+    if (action.tasks.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            result.tasks.forEach { t ->
+            action.tasks.forEach { t ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                     Box(
                         Modifier.padding(top = 3.dp).size(16.dp).clip(RoundedCornerShape(3.dp))

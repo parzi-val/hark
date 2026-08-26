@@ -1,6 +1,7 @@
 package com.hark.di
 
 import android.content.Context
+import com.hark.ai.HarkService
 import com.hark.ai.OpenAiClient
 import com.hark.ai.RecallService
 import com.hark.ai.SettingsStore
@@ -56,6 +57,8 @@ class AppContainer(context: Context) {
     )
 
     val openAiClient = OpenAiClient(settingsProvider = { settingsStore.settings.value })
+
+    val harkService = HarkService(openAiClient, settingsProvider = { settingsStore.settings.value })
 
     val tidyService = TidyService(openAiClient)
 

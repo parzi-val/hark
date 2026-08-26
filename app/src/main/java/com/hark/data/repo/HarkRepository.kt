@@ -5,6 +5,10 @@ import com.hark.data.local.NoteEntity
 import com.hark.data.local.Source
 import com.hark.data.local.TaskDao
 import com.hark.data.local.TaskEntity
+import com.hark.domain.Action
+import com.hark.domain.FocusedNote
+import com.hark.domain.HarkAction
+import com.hark.domain.NoteRef
 import com.hark.domain.StreamItem
 import com.hark.domain.TidyResult
 import kotlinx.coroutines.flow.Flow
@@ -26,12 +30,13 @@ class HarkRepository(
     private val onTaskScheduled: (taskId: Long, title: String, dueAt: Instant) -> Unit = { _, _, _ -> },
     private val onTaskCancelled: (taskId: Long) -> Unit = {},
 ) {
+    // Stream excludes Shelf notes — Shelf has its own reading list.
     val stream: Flow<List<StreamItem>> =
         combine(noteDao.observeAll(), taskDao.observeAll()) { notes, tasks ->
-            // Tasks extracted from a note travel with that note; only standalone tasks stand alone.
+            val streamNotes = notes.filter { !it.shelf }
             val childrenByNote = tasks.filter { it.sourceNoteId != null }.groupBy { it.sourceNoteId }
             buildList {
-                notes.forEach { note ->
+                streamNotes.forEach { note ->
                     add(StreamItem.Note(note, childrenByNote[note.id].orEmpty().sortedBy { it.createdAt }))
                 }
                 tasks.filter { it.sourceNoteId == null }.forEach { add(StreamItem.Task(it)) }
@@ -44,10 +49,14 @@ class HarkRepository(
     val tasks: Flow<List<TaskEntity>> = taskDao.observeAll()
     val notes: Flow<List<NoteEntity>> = noteDao.observeAll()
 
+    val shelfNotes: Flow<List<NoteEntity>> = noteDao.observeAll().map { list ->
+        list.filter { it.shelf }
+    }
+
     suspend fun searchNotes(query: String): List<NoteEntity> =
         if (query.isBlank()) emptyList() else noteDao.search("%${query.trim()}%")
 
-    /** Up to three items for the 4×2 widget: skip completed tasks. */
+    /** Up to three items for the 4×2 widget: skip completed tasks and shelf notes. */
     val widgetItems: Flow<List<StreamItem>> = stream.map { items ->
         items.filterNot { it is StreamItem.Task && it.task.done }.take(3)
     }
@@ -154,6 +163,141 @@ class HarkRepository(
         return noteId
     }
 
+    /** Create a blank Shelf note and return its id (for the full-screen writer). */
+    suspend fun newShelfNote(): Long {
+        val now = Instant.now()
+        val noteId = noteDao.insert(
+            NoteEntity(
+                title = "",
+                body = "",
+                source = Source.TYPED,
+                pinnedToWidget = false,
+                shelf = true,
+                createdAt = now,
+                updatedAt = now,
+            )
+        )
+        onChanged()
+        return noteId
+    }
+
+    /** Move a note between Stream and Shelf. Shelving clears any widget pin. */
+    suspend fun setShelf(id: Long, shelf: Boolean) {
+        val now = Instant.now()
+        val pinned = if (shelf) false else (noteDao.getById(id)?.pinnedToWidget ?: false)
+        noteDao.setShelf(id, shelf, pinned, now)
+        onChanged()
+    }
+
+    /** Recent notes as a lightweight index for the model to resolve "which note". */
+    suspend fun recentNoteRefs(limit: Int = 40): List<NoteRef> {
+        val allNotes = noteDao.getRecent(limit)
+        val allTasks = taskDao.getAllActive()
+        val countByNote = allTasks.filter { it.sourceNoteId != null }.groupingBy { it.sourceNoteId!! }.eachCount()
+
+        return allNotes.map { n ->
+            NoteRef(
+                id = n.id,
+                title = n.title,
+                snippet = n.body.replace(Regex("""\s+"""), " ").trim().take(80),
+                taskCount = countByNote[n.id] ?: 0,
+            )
+        }
+    }
+
+    suspend fun focusedNoteOf(id: Long): FocusedNote? {
+        val note = noteDao.getById(id) ?: return null
+        if (note.deleted) return null
+        val tasks = taskDao.getForNote(id).filter { !it.deleted }.map { it.title }
+        return FocusedNote(id = note.id, title = note.title, body = note.body, tasks = tasks)
+    }
+
+    /** Applies a HarkAction locally. Returns the affected note id. Never loses capture. */
+    suspend fun applyAction(
+        action: HarkAction,
+        transcript: String,
+        source: Source,
+    ): Long {
+        val now = Instant.now()
+
+        val addTasks: suspend (Long) -> Unit = { noteId ->
+            if (action.tasks.isNotEmpty()) {
+                val tasks = action.tasks.map { t ->
+                    TaskEntity(
+                        title = t.title,
+                        dueAt = t.dueAt,
+                        dueHint = t.dueHint,
+                        sourceNoteId = noteId,
+                        createdAt = now,
+                        updatedAt = now,
+                    )
+                }
+                val taskIds = taskDao.insertAll(tasks)
+                tasks.forEachIndexed { i, t ->
+                    if (t.dueAt != null) {
+                        val id = taskIds.getOrNull(i) ?: 0L
+                        if (id > 0) onTaskScheduled(id, t.title, t.dueAt)
+                    }
+                }
+            }
+        }
+
+        if (action.action != Action.CREATE && action.targetNoteId != null) {
+            val existing = noteDao.getById(action.targetNoteId)
+            if (existing != null && !existing.deleted) {
+                if (action.action == Action.APPEND) {
+                    val add = action.body.trim()
+                    val body = if (add.isNotEmpty()) {
+                        if (existing.body.isNotBlank()) "${existing.body}\n\n$add" else add
+                    } else existing.body
+                    noteDao.update(
+                        existing.copy(
+                            body = body,
+                            heardAs = trail(existing.heardAs, transcript, source),
+                            updatedAt = now,
+                        )
+                    )
+                } else { // Action.EDIT
+                    noteDao.update(
+                        existing.copy(
+                            title = action.title?.ifBlank { null } ?: existing.title,
+                            body = action.body,
+                            heardAs = trail(existing.heardAs, transcript, source),
+                            updatedAt = now,
+                        )
+                    )
+                }
+                addTasks(existing.id)
+                onChanged()
+                return existing.id
+            }
+            // Target missing -> falls through to CREATE
+        }
+
+        // CREATE
+        val isLongVoice = source == Source.SPOKEN && transcript.length > SHELF_THRESHOLD
+        val noteId = noteDao.insert(
+            NoteEntity(
+                title = action.title?.ifBlank { null } ?: transcript.take(40).ifBlank { "Untitled note" },
+                body = action.body.ifBlank { transcript },
+                heardAs = if (source == Source.SPOKEN) transcript else null,
+                source = source,
+                pinnedToWidget = false,
+                shelf = isLongVoice,
+                createdAt = now,
+                updatedAt = now,
+            )
+        )
+        addTasks(noteId)
+        onChanged()
+        return noteId
+    }
+
+    private fun trail(existing: String?, transcript: String, source: Source): String? {
+        if (source != Source.SPOKEN) return existing
+        return if (!existing.isNullOrBlank()) "$existing\n\n— — —\n$transcript" else transcript
+    }
+
     suspend fun seedStarterNoteIfEmpty() {
         if (noteDao.count() == 0 && taskDao.count() == 0) {
             val now = Instant.now()
@@ -164,6 +308,7 @@ class HarkRepository(
                     heardAs = "Welcome to Hark. Speak a messy thought and Hark will tidy it into a clean note and extract tasks for you. Try tapping talk or adding the home screen widget.",
                     source = Source.SPOKEN,
                     pinnedToWidget = true,
+                    shelf = false,
                     createdAt = now,
                     updatedAt = now,
                 )
@@ -200,39 +345,20 @@ class HarkRepository(
         }
     }
 
-    /** Persist a tidied capture: the note, then its extracted tasks pointing back to it. */
+    /** Legacy helper — now wraps applyAction. */
     suspend fun saveTidied(result: TidyResult, heardAs: String?, source: Source): Long {
-        val now = Instant.now()
-        val noteId = noteDao.insert(
-            NoteEntity(
-                title = result.title,
-                body = result.note,
-                heardAs = heardAs,
-                source = source,
-                createdAt = now,
-                updatedAt = now,
-            )
+        val action = HarkAction(
+            action = Action.CREATE,
+            targetNoteId = null,
+            title = result.title,
+            body = result.note,
+            tasks = result.tasks.map { com.hark.domain.HarkTask(it.title, it.due, it.dueHint) },
+            reason = "tidy",
         )
-        if (result.tasks.isNotEmpty()) {
-            val tasks = result.tasks.map { t ->
-                TaskEntity(
-                    title = t.title,
-                    dueAt = t.due,
-                    dueHint = t.dueHint,
-                    sourceNoteId = noteId,
-                    createdAt = now,
-                    updatedAt = now,
-                )
-            }
-            val taskIds = taskDao.insertAll(tasks)
-            tasks.forEachIndexed { i, t ->
-                if (t.dueAt != null) {
-                    val id = taskIds.getOrNull(i) ?: 0L
-                    if (id > 0) onTaskScheduled(id, t.title, t.dueAt)
-                }
-            }
-        }
-        onChanged()
-        return noteId
+        return applyAction(action, heardAs ?: result.note, source)
+    }
+
+    companion object {
+        const val SHELF_THRESHOLD = 400
     }
 }

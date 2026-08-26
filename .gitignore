@@ -8,3 +8,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Web PWA
+web/node_modules/
+web/dist/
+web/.vite/
+.kotlin/
+.claude/

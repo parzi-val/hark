@@ -1,0 +1,34 @@
+{
+  "name": "Hark",
+  "short_name": "Hark",
+  "description": "Widgets-first notes with voice capture and AI tidying",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F2ED",
+  "theme_color": "#F4F2ED",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Talk to Hark",
+      "short_name": "Talk",
+      "description": "Quick voice capture",
+      "url": "/?action=talk",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Write Note",
+      "short_name": "Write",
+      "description": "Compose a note",
+      "url": "/?action=write",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    }
+  ]
+}

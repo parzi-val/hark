@@ -21,24 +21,22 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hark.ui.compose.ComposeScreen
 import com.hark.ui.note.NoteDetailScreen
 import com.hark.ui.recall.RecallScreen
 import com.hark.ui.settings.SettingsScreen
+import com.hark.ui.shelf.ShelfScreen
+import com.hark.ui.splash.SplashScreen
 import com.hark.ui.stream.StreamScreen
 import com.hark.ui.talk.TalkScreen
 import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkTheme
 import com.hark.ui.theme.HarkType
 import com.hark.ui.today.TodayScreen
-
-import com.hark.ui.splash.SplashScreen
-
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 sealed interface Screen {
     data object Splash : Screen
@@ -51,15 +49,15 @@ sealed interface Screen {
     data object Settings : Tab
 
     // Pushed full-screen (no bottom nav).
-    data object Talk : Screen
+    data object Shelf : Screen
+    data class Talk(val focusedNoteId: Long? = null) : Screen
     data object Compose : Screen
     data class NoteDetail(val noteId: Long) : Screen
 }
 
 class MainActivity : ComponentActivity() {
 
-    private var currentScreen by mutableStateOf<Screen>(Screen.Splash)
-    private var lastTab: Screen.Tab = Screen.Stream
+    private val backStack = mutableStateListOf<Screen>(Screen.Splash)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,24 +73,40 @@ class MainActivity : ComponentActivity() {
                 com.hark.ai.ThemeMode.DARK -> true
             }
 
+            val currentScreen = backStack.lastOrNull() ?: Screen.Stream
+
             HarkTheme(darkTheme = isDark) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize().systemBarsPadding()) {
                         AppNavigation(
                             currentScreen = currentScreen,
                             onNavigate = { screen ->
-                                if (screen is Screen.Tab) lastTab = screen
-                                currentScreen = screen
+                                if (screen is Screen.Tab) {
+                                    backStack.clear()
+                                    backStack.add(screen)
+                                } else if (screen is Screen.Splash) {
+                                    backStack.clear()
+                                    backStack.add(Screen.Splash)
+                                } else {
+                                    if (backStack.size == 1 && backStack.first() == Screen.Splash) {
+                                        backStack.clear()
+                                        backStack.add(screen)
+                                    } else {
+                                        backStack.add(screen)
+                                    }
+                                }
                             },
                             onBack = {
-                                when (val s = currentScreen) {
-                                    is Screen.Tab -> {
-                                        if (s == Screen.Stream) finish() else {
-                                            lastTab = Screen.Stream
-                                            currentScreen = Screen.Stream
-                                        }
+                                if (backStack.size > 1) {
+                                    backStack.removeAt(backStack.lastIndex)
+                                } else {
+                                    val only = backStack.firstOrNull()
+                                    if (only != null && only != Screen.Stream && only != Screen.Splash) {
+                                        backStack.clear()
+                                        backStack.add(Screen.Stream)
+                                    } else {
+                                        finish()
                                     }
-                                    else -> currentScreen = lastTab
                                 }
                             },
                         )
@@ -110,7 +124,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == ACTION_TALK || intent?.getBooleanExtra(EXTRA_START_TALK, false) == true) {
-            currentScreen = Screen.Talk
+            backStack.add(Screen.Talk())
         }
     }
 
@@ -131,10 +145,11 @@ private fun AppNavigation(currentScreen: Screen, onNavigate: (Screen) -> Unit, o
             Box(Modifier.fillMaxSize().weight(1f)) {
                 when (currentScreen) {
                     Screen.Stream -> StreamScreen(
-                        onTalk = { onNavigate(Screen.Talk) },
+                        onTalk = { onNavigate(Screen.Talk()) },
                         onWrite = { onNavigate(Screen.Compose) },
                         onOpenSettings = { onNavigate(Screen.Settings) },
                         onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
+                        onToggleShelf = { onNavigate(Screen.Shelf) },
                     )
                     Screen.Today -> TodayScreen(onOpenNote = { onNavigate(Screen.NoteDetail(it)) })
                     Screen.Recall -> RecallScreen(onOpenNote = { onNavigate(Screen.NoteDetail(it)) })
@@ -144,9 +159,25 @@ private fun AppNavigation(currentScreen: Screen, onNavigate: (Screen) -> Unit, o
             BottomNav(current = currentScreen, onTab = onNavigate)
         }
 
-        Screen.Talk -> TalkScreen(onClose = onBack, onKept = { onNavigate(Screen.Stream) })
-        Screen.Compose -> ComposeScreen(onClose = onBack, onSaved = { onNavigate(Screen.Stream) })
-        is Screen.NoteDetail -> NoteDetailScreen(noteId = currentScreen.noteId, onClose = onBack)
+        Screen.Shelf -> ShelfScreen(
+            onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
+            onToggleStream = onBack,
+        )
+
+        is Screen.Talk -> TalkScreen(
+            onClose = onBack,
+            onKept = { noteId ->
+                onBack()
+                onNavigate(Screen.NoteDetail(noteId))
+            },
+            focusedNoteId = currentScreen.focusedNoteId,
+        )
+        Screen.Compose -> ComposeScreen(onClose = onBack, onSaved = onBack)
+        is Screen.NoteDetail -> NoteDetailScreen(
+            noteId = currentScreen.noteId,
+            onClose = onBack,
+            onTalkToEdit = { onNavigate(Screen.Talk(focusedNoteId = currentScreen.noteId)) },
+        )
     }
 }
 

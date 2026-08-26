@@ -1,8 +1,15 @@
 package com.hark.ui.components
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -137,4 +144,31 @@ fun HarkMark(
             )
         }
     }
+}
+
+/**
+ * Looping Hilbert curve spinner that animates in and out smoothly.
+ */
+@Composable
+fun HilbertSpinner(
+    modifier: Modifier = Modifier.size(72.dp),
+    color: Color = Hark.colors.ink,
+    strokeWidth: Dp? = null,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "hilbert_spinner")
+    val progress by infiniteTransition.animateFloat(
+        initialValue = 0.05f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1300, easing = CubicBezierEasing(0.35f, 0.0f, 0.25f, 1.0f)),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "progress",
+    )
+    HarkMark(
+        modifier = modifier,
+        progress = progress,
+        color = color,
+        strokeWidth = strokeWidth,
+    )
 }

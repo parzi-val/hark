@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens ported 1:1 from the Android theme (HarkColors). */
+:root {
+  --color-paper: #F4F2ED;
+  --color-paper-card: #FAF8F4;
+  --color-ink: #1C1B19;
+  --color-ink-muted: rgba(28, 27, 25, 0.55);
+  --color-ink-faint: rgba(28, 27, 25, 0.40);
+  --color-ink-hairline: rgba(28, 27, 25, 0.09);
+  --color-checkbox-border: rgba(28, 27, 25, 0.42);
+  --color-rust: #8A4B34;
+  --color-rust-muted: rgba(138, 75, 52, 0.14);
+}
+
+.dark {
+  --color-paper: #33342F;
+  --color-paper-card: #3A3B36;
+  --color-ink: #ECEAE4;
+  --color-ink-muted: rgba(236, 234, 228, 0.60);
+  --color-ink-faint: rgba(236, 234, 228, 0.42);
+  --color-ink-hairline: rgba(236, 234, 228, 0.12);
+  --color-checkbox-border: rgba(236, 234, 228, 0.45);
+  --color-rust: #D99F83;
+  --color-rust-muted: rgba(217, 159, 131, 0.18);
+}
+
+body {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-weight: 400;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Hark checkbox: outlined 16px square, rust inner square when done (matches Android TaskCheck). */
+.hark-check {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid var(--color-checkbox-border);
+  border-radius: 3px;
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  margin: 0;
+}
+.hark-check::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--color-rust);
+  transform: scale(0);
+  transition: transform 0.12s ease-in-out;
+}
+.hark-check:checked {
+  border-color: var(--color-rust);
+}
+.hark-check:checked::before {
+  transform: scale(1);
+}
+
+/* Rendered markdown note bodies — Hark serif + tokens, sized to the type scale. */
+.hark-md {
+  color: var(--color-ink);
+  font-family: 'Libre Baskerville', Georgia, serif;
+}
+.hark-md > *:first-child { margin-top: 0; }
+.hark-md > *:last-child { margin-bottom: 0; }
+.hark-md p { font-size: 17px; line-height: 26px; margin: 0 0 0.85em; }
+.hark-md h1 { font-size: 27px; line-height: 1.2; margin: 1em 0 0.4em; }
+.hark-md h2 { font-size: 21px; line-height: 1.25; margin: 1em 0 0.35em; }
+.hark-md h3 { font-size: 18px; line-height: 1.3; margin: 0.9em 0 0.3em; }
+.hark-md ul, .hark-md ol { font-size: 17px; line-height: 26px; margin: 0 0 0.85em; padding-left: 1.4em; }
+.hark-md ul { list-style: disc; }
+.hark-md ol { list-style: decimal; }
+.hark-md li { margin: 0.2em 0; }
+.hark-md li::marker { color: var(--color-ink-faint); }
+.hark-md strong { font-weight: 700; }
+.hark-md em { font-style: italic; }
+.hark-md a { color: var(--color-rust); text-decoration: underline; text-underline-offset: 2px; }
+.hark-md blockquote {
+  border-left: 2px solid var(--color-rust);
+  padding-left: 0.9em;
+  margin: 0 0 0.85em;
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+.hark-md code {
+  font-family: 'Syne Mono', monospace;
+  font-size: 0.88em;
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-ink-hairline);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+}
+.hark-md pre {
+  background: var(--color-paper-card);
+  border: 1px solid var(--color-ink-hairline);
+  border-radius: 10px;
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  margin: 0 0 0.85em;
+}
+.hark-md pre code { background: none; border: none; padding: 0; }
+.hark-md hr { border: none; border-top: 1px solid var(--color-ink-hairline); margin: 1.2em 0; }
+.hark-md input[type='checkbox'] { margin-right: 0.45em; accent-color: var(--color-rust); }
+
+/* Custom scrollbars that match Hark's subtle paper aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-hairline);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-faint);
+}

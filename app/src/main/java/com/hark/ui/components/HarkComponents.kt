@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
@@ -99,6 +102,58 @@ private fun NibBar(color: Color, delayMillis: Int) {
             .graphicsLayer { scaleY = scale; transformOrigin = TransformOrigin.Center }
             .background(color, RoundedCornerShape(1.dp)),
     )
+}
+
+/** Lucide Library / Shelf icon (4 books on a shelf). */
+@Composable
+fun ShelfIcon(
+    modifier: Modifier = Modifier.size(16.dp),
+    color: Color = Hark.colors.ink,
+) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val strokePx = (w / 12f).coerceAtLeast(1.5f)
+
+        val sx = w / 24f
+        val sy = h / 24f
+
+        // 1. Book 1: M4 4v16
+        drawLine(
+            color = color,
+            start = Offset(4f * sx, 4f * sy),
+            end = Offset(4f * sx, 20f * sy),
+            strokeWidth = strokePx,
+            cap = StrokeCap.Round,
+        )
+
+        // 2. Book 2: M8 8v12
+        drawLine(
+            color = color,
+            start = Offset(8f * sx, 8f * sy),
+            end = Offset(8f * sx, 20f * sy),
+            strokeWidth = strokePx,
+            cap = StrokeCap.Round,
+        )
+
+        // 3. Book 3: M12 6v14
+        drawLine(
+            color = color,
+            start = Offset(12f * sx, 6f * sy),
+            end = Offset(12f * sx, 20f * sy),
+            strokeWidth = strokePx,
+            cap = StrokeCap.Round,
+        )
+
+        // 4. Book 4 (slanted): m16 6 4 14
+        drawLine(
+            color = color,
+            start = Offset(16f * sx, 6f * sy),
+            end = Offset(20f * sx, 20f * sy),
+            strokeWidth = strokePx,
+            cap = StrokeCap.Round,
+        )
+    }
 }
 
 /** Live listening waveform; bar heights react to [level] (0..1) with a travelling wave. */

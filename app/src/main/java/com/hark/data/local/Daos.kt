@@ -27,6 +27,9 @@ interface NoteDao {
     @Query("UPDATE notes SET pinnedToWidget = :pinned, updatedAt = :now WHERE id = :id")
     suspend fun setPinned(id: Long, pinned: Boolean, now: Instant)
 
+    @Query("UPDATE notes SET shelf = :shelf, pinnedToWidget = :pinned, updatedAt = :now WHERE id = :id")
+    suspend fun setShelf(id: Long, shelf: Boolean, pinned: Boolean, now: Instant)
+
     @Query("UPDATE notes SET title = :title, body = :body, updatedAt = :now WHERE id = :id")
     suspend fun updateContent(id: Long, title: String, body: String, now: Instant)
 
@@ -35,6 +38,9 @@ interface NoteDao {
 
     @Query("SELECT COUNT(*) FROM notes WHERE deleted = 0")
     suspend fun count(): Int
+
+    @Query("SELECT * FROM notes WHERE deleted = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun getRecent(limit: Int = 40): List<NoteEntity>
 
     @Query(
         "SELECT * FROM notes WHERE deleted = 0 AND " +
@@ -58,6 +64,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE deleted = 0 ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<TaskEntity>>
 
+    @Query("SELECT * FROM tasks WHERE deleted = 0")
+    suspend fun getAllActive(): List<TaskEntity>
+
     @Query("SELECT COUNT(*) FROM tasks WHERE deleted = 0 AND done = 0")
     fun observeOpenCount(): Flow<Int>
 
@@ -66,6 +75,9 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE sourceNoteId = :noteId AND deleted = 0 ORDER BY createdAt ASC")
     fun observeForNote(noteId: Long): Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM tasks WHERE sourceNoteId = :noteId AND deleted = 0 ORDER BY createdAt ASC")
+    suspend fun getForNote(noteId: Long): List<TaskEntity>
 
     @Query("UPDATE tasks SET title = :title, dueHint = :dueHint, dueAt = :dueAt, updatedAt = :now WHERE id = :id")
     suspend fun updateContent(id: Long, title: String, dueHint: String?, dueAt: Instant?, now: Instant)

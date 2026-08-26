@@ -16,6 +16,7 @@ enum class StreamFilter { ALL, OPEN, NOTES }
 data class StreamUiState(
     val items: List<StreamItem> = emptyList(),
     val openCount: Int = 0,
+    val shelfCount: Int = 0,
     val filter: StreamFilter = StreamFilter.ALL,
 ) {
     val visible: List<StreamItem> get() = when (filter) {
@@ -35,8 +36,8 @@ class StreamViewModel(private val repo: HarkRepository) : ViewModel() {
     private val filter = kotlinx.coroutines.flow.MutableStateFlow(StreamFilter.ALL)
 
     val ui: StateFlow<StreamUiState> =
-        combine(repo.stream, repo.openCount, filter) { items, open, f ->
-            StreamUiState(items = items, openCount = open, filter = f)
+        combine(repo.stream, repo.openCount, repo.shelfNotes, filter) { items, open, shelfNotes, f ->
+            StreamUiState(items = items, openCount = open, shelfCount = shelfNotes.size, filter = f)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StreamUiState())
 
     fun setFilter(f: StreamFilter) { filter.value = f }
