@@ -48,6 +48,13 @@ interface NoteDao {
             "ORDER BY createdAt DESC LIMIT 20",
     )
     suspend fun search(like: String): List<NoteEntity>
+
+    // ---- sync ----
+    @Query("SELECT * FROM notes")
+    suspend fun getAll(): List<NoteEntity>
+
+    @Query("SELECT * FROM notes WHERE remoteId = :rid LIMIT 1")
+    suspend fun getByRemoteId(rid: String): NoteEntity?
 }
 
 @Dao
@@ -90,4 +97,11 @@ interface TaskDao {
 
     @Query("SELECT COUNT(*) FROM tasks WHERE deleted = 0")
     suspend fun count(): Int
+
+    // ---- sync ----
+    @Query("SELECT * FROM tasks")
+    suspend fun getAll(): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks WHERE remoteId = :rid LIMIT 1")
+    suspend fun getByRemoteId(rid: String): TaskEntity?
 }

@@ -13,5 +13,6 @@ local.properties
 web/node_modules/
 web/dist/
 web/.vite/
+web/secrets/
 .kotlin/
 .claude/

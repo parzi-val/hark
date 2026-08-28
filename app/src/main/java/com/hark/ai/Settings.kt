@@ -20,6 +20,7 @@ data class AiSettings(
     val widgetTheme: WidgetTheme = WidgetTheme.PAPER,
     val widgetOpacity: Int = 100,
     val widgetShowToolbar: Boolean = true,
+    val showWordOfTheDay: Boolean = true,
 ) {
     val isConfigured: Boolean get() = apiKey.isNotBlank()
 
@@ -53,8 +54,15 @@ class SettingsStore(
             .putString(KEY_WIDGET_THEME, new.widgetTheme.name)
             .putInt(KEY_WIDGET_OPACITY, new.widgetOpacity)
             .putBoolean(KEY_WIDGET_TOOLBAR, new.widgetShowToolbar)
+            .putBoolean(KEY_SHOW_WORD_OF_DAY, new.showWordOfTheDay)
             .apply()
         _settings.value = new
+        onWidgetSettingsChanged()
+    }
+
+    fun setShowWordOfTheDay(show: Boolean) {
+        prefs.edit().putBoolean(KEY_SHOW_WORD_OF_DAY, show).apply()
+        _settings.value = _settings.value.copy(showWordOfTheDay = show)
         onWidgetSettingsChanged()
     }
 
@@ -94,6 +102,7 @@ class SettingsStore(
         }.getOrDefault(WidgetTheme.PAPER),
         widgetOpacity = prefs.getInt(KEY_WIDGET_OPACITY, 100),
         widgetShowToolbar = prefs.getBoolean(KEY_WIDGET_TOOLBAR, true),
+        showWordOfTheDay = prefs.getBoolean(KEY_SHOW_WORD_OF_DAY, true),
     )
 
     private companion object {
@@ -104,5 +113,6 @@ class SettingsStore(
         const val KEY_WIDGET_THEME = "widget_theme"
         const val KEY_WIDGET_OPACITY = "widget_opacity"
         const val KEY_WIDGET_TOOLBAR = "widget_toolbar"
+        const val KEY_SHOW_WORD_OF_DAY = "show_word_of_day"
     }
 }

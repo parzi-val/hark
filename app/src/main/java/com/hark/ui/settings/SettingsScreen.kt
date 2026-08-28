@@ -39,11 +39,22 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hark.ai.AiSettings
 import com.hark.ai.ThemeMode
 import com.hark.ai.WidgetTheme
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.hark.HarkApp
+import com.hark.sync.GoogleAuth
 import com.hark.ui.components.MetaLabel
 import com.hark.ui.components.SectionLabel
 import com.hark.ui.harkViewModel
 import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkType
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(onClose: () -> Unit) {
@@ -56,6 +67,66 @@ fun SettingsScreen(onClose: () -> Unit) {
     var model by remember(currentSettings) { mutableStateOf(currentSettings.model) }
     var showApiKey by remember { mutableStateOf(false) }
     var savedFeedback by remember { mutableStateOf(false) }
+
+    // ---- Drive sync ----
+    val ctx = LocalContext.current
+    val sync = remember { (ctx.applicationContext as HarkApp).container.syncManager }
+    val scope = rememberCoroutineScope()
+    var signedIn by remember { mutableStateOf(sync.isEnabled) }
+    var optIn by remember { mutableStateOf(sync.isApiKeySynced) }
+    var syncBusy by remember { mutableStateOf(false) }
+    var syncMsg by remember { mutableStateOf("") }
+
+    val consentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) { result ->
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK && data != null) {
+            scope.launch {
+                try {
+                    val authRes = GoogleAuth.resultFromIntent(ctx, data)
+                    if (authRes.accessToken != null) {
+                        signedIn = true
+                        sync.onSignedIn()
+                        syncMsg = "Synced."
+                    } else {
+                        syncMsg = "Sign-in failed — try again."
+                    }
+                } catch (e: Exception) {
+                    syncMsg = "Sign-in failed — try again."
+                } finally {
+                    syncBusy = false
+                }
+            }
+        } else {
+            syncBusy = false
+            syncMsg = "Sign-in cancelled."
+        }
+    }
+
+    val startSignIn = {
+        scope.launch {
+            syncBusy = true
+            syncMsg = ""
+            try {
+                val res = GoogleAuth.authorize(ctx)
+                val pi = res.pendingIntent
+                if (res.hasResolution() && pi != null) {
+                    consentLauncher.launch(IntentSenderRequest.Builder(pi.intentSender).build())
+                    // syncBusy stays true until the consent result returns
+                } else {
+                    signedIn = true
+                    sync.onSignedIn()
+                    syncMsg = "Synced."
+                    syncBusy = false
+                }
+            } catch (e: Exception) {
+                syncMsg = "Sign-in failed — try again."
+                syncBusy = false
+            }
+        }
+        Unit
+    }
 
     Column(
         Modifier
@@ -202,6 +273,157 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             HorizontalDivider(color = c.inkHairline)
 
+            // Vocabulary / Lexicon Section
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("WORD OF THE DAY (λέξις)")
+                Text(
+                    "Show an elevated daily vocabulary card on the Today screen for conceptual precision.",
+                    style = HarkType.secondary,
+                    color = c.inkMuted,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    listOf(true to "ENABLED", false to "DISABLED").forEach { (enabled, label) ->
+                        val isSelected = currentSettings.showWordOfTheDay == enabled
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(if (isSelected) c.ink else c.paper)
+                                .border(1.dp, if (isSelected) c.ink else c.inkHairline, RoundedCornerShape(20.dp))
+                                .clickable {
+                                    vm.setShowWordOfTheDay(enabled)
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = label,
+                                style = HarkType.label,
+                                color = if (isSelected) c.paper else c.inkMuted,
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = c.inkHairline)
+
+            // Sync (Google Drive appData)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SectionLabel("SYNC")
+                Text(
+                    "Keep your notes in step across devices through your own private Google Drive. Optional — Hark works fully offline without it.",
+                    style = HarkType.secondary,
+                    color = c.inkMuted,
+                )
+
+                if (!signedIn) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(c.ink)
+                            .clickable(enabled = !syncBusy) { startSignIn() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (syncBusy) "CONNECTING…" else "SIGN IN WITH GOOGLE",
+                            style = HarkType.label,
+                            color = c.paper,
+                        )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        MetaLabel("✓ Connected · Drive", color = c.rust)
+                        MetaLabel(
+                            "SIGN OUT",
+                            color = c.inkMuted,
+                            modifier = Modifier.clickable {
+                                sync.signOut()
+                                signedIn = false
+                                syncMsg = ""
+                            },
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(22.dp))
+                            .border(1.dp, c.inkHairline, RoundedCornerShape(22.dp))
+                            .clickable(enabled = !syncBusy) {
+                                scope.launch {
+                                    syncBusy = true
+                                    syncMsg = ""
+                                    try {
+                                        sync.syncNow()
+                                        syncMsg = "Synced."
+                                    } catch (e: Exception) {
+                                        syncMsg = "Sync failed — sign in again?"
+                                    } finally {
+                                        syncBusy = false
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(if (syncBusy) "SYNCING…" else "SYNC NOW", style = HarkType.label, color = c.ink)
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.paperRaised)
+                            .border(1.dp, c.inkHairline, RoundedCornerShape(12.dp))
+                            .clickable {
+                                val next = !optIn
+                                optIn = next
+                                sync.isApiKeySynced = next
+                            }
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Also sync my API key", style = HarkType.secondary, color = c.ink)
+                            Text("Stored only in your private Drive folder.", style = HarkType.meta, color = c.inkFaint)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .width(44.dp)
+                                .height(26.dp)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(if (optIn) c.rust else c.inkHairline),
+                            contentAlignment = if (optIn) Alignment.CenterEnd else Alignment.CenterStart,
+                        ) {
+                            Box(
+                                Modifier
+                                    .padding(3.dp)
+                                    .size(20.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(c.paper),
+                            )
+                        }
+                    }
+                }
+
+                if (syncMsg.isNotBlank()) {
+                    Text(syncMsg, style = HarkType.secondary, color = c.rust)
+                }
+            }
+
+            HorizontalDivider(color = c.inkHairline)
+
             Text("AI Configuration", style = HarkType.title, color = c.ink)
 
             Text(
@@ -324,6 +546,14 @@ fun SettingsScreen(onClose: () -> Unit) {
                             )
                         )
                         savedFeedback = true
+                        if (sync.isEnabled) {
+                            scope.launch {
+                                try {
+                                    sync.pushSettings()
+                                } catch (e: Exception) {
+                                }
+                            }
+                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {

@@ -59,6 +59,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Google sign-in / Drive appData sync (Identity Authorization API)
+    implementation(libs.play.services.auth)
+
     // Glance Home Screen Widgets
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)

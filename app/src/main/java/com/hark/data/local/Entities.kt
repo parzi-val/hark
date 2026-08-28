@@ -5,6 +5,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.Instant
+import java.util.UUID
 
 /** How an item entered Hark. */
 enum class Source { SPOKEN, TYPED }
@@ -24,8 +25,10 @@ data class NoteEntity(
     val shelf: Boolean = false,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
-    // Sync prep — unused in v1, present so the schema never needs a migration for it.
-    val remoteId: String? = null,
+    // Stable global id for cross-device sync (the Drive appData snapshot key). Auto-assigned
+    // to new rows; existing null rows are backfilled on startup. Column stays nullable so no
+    // Room migration is needed.
+    val remoteId: String? = UUID.randomUUID().toString(),
     val deleted: Boolean = false,
 )
 
@@ -55,6 +58,6 @@ data class TaskEntity(
     val sourceNoteId: Long? = null,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
-    val remoteId: String? = null,
+    val remoteId: String? = UUID.randomUUID().toString(),
     val deleted: Boolean = false,
 )

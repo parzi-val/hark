@@ -9,6 +9,7 @@ import com.hark.ai.TidyService
 import com.hark.data.local.HarkDatabase
 import com.hark.data.repo.HarkRepository
 import com.hark.speech.AudioRecorder
+import com.hark.sync.SyncManager
 
 import androidx.glance.appwidget.updateAll
 import com.hark.widget.StreamWidget
@@ -64,9 +65,22 @@ class AppContainer(context: Context) {
 
     val recallService = RecallService(openAiClient)
 
+    val lexiconRepository = com.hark.data.repo.LexiconRepository(appContext)
+
+    val syncManager = SyncManager(appContext, database, settingsStore)
+
     init {
         CoroutineScope(Dispatchers.IO).launch {
             repository.seedStarterNoteIfEmpty()
+            syncManager.backfillUids()
+            // Auto-sync on launch if the user has turned it on. Silent — a lapsed grant
+            // just no-ops until they sign in again from Settings.
+            if (syncManager.isEnabled) {
+                try {
+                    syncManager.syncNow()
+                } catch (_: Exception) {
+                }
+            }
         }
     }
 

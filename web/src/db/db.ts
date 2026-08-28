@@ -2,6 +2,7 @@ import Dexie, { Table } from 'dexie';
 
 export interface NoteEntity {
   id?: number;
+  uid?: string; // stable global id for cross-device sync; auto-assigned on create
   title: string;
   body: string;
   heardAs?: string | null;
@@ -15,6 +16,7 @@ export interface NoteEntity {
 
 export interface TaskEntity {
   id?: number;
+  uid?: string; // stable global id for cross-device sync; auto-assigned on create
   title: string;
   done: boolean;
   doneAt?: number | null;
@@ -51,10 +53,33 @@ export class HarkDatabase extends Dexie {
       tasks: '++id, done, sourceNoteId, createdAt, deleted',
       settings: 'id',
     });
+    // v2: add the cross-device sync key. Index it and backfill existing rows.
+    this.version(2)
+      .stores({
+        notes: '++id, uid, pinnedToWidget, createdAt, deleted',
+        tasks: '++id, uid, done, sourceNoteId, createdAt, deleted',
+        settings: 'id',
+      })
+      .upgrade(async (tx) => {
+        await tx.table('notes').toCollection().modify((n: NoteEntity) => {
+          if (!n.uid) n.uid = crypto.randomUUID();
+        });
+        await tx.table('tasks').toCollection().modify((t: TaskEntity) => {
+          if (!t.uid) t.uid = crypto.randomUUID();
+        });
+      });
   }
 }
 
 export const db = new HarkDatabase();
+
+// Auto-assign a stable sync uid to every new note/task, so no insert site can forget it.
+db.notes.hook('creating', (_pk, obj: NoteEntity) => {
+  if (!obj.uid) obj.uid = crypto.randomUUID();
+});
+db.tasks.hook('creating', (_pk, obj: TaskEntity) => {
+  if (!obj.uid) obj.uid = crypto.randomUUID();
+});
 
 // Seed initial starter note if fresh. Guard against concurrent double-seed
 // (React StrictMode invokes effects twice in dev).

@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -96,11 +98,17 @@ fun ShelfScreen(
                     color = c.inkMuted,
                     modifier = Modifier.clickable { onToggleStream() },
                 )
-                MetaLabel(
-                    text = "＋ NEW",
-                    color = c.ink,
-                    modifier = Modifier.clickable { vm.createShelfNote(onOpenNote) },
-                )
+                // Pencil FAB — same ✎ affordance as the Stream capture button.
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(c.ink)
+                        .clickable { vm.createShelfNote(onOpenNote) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("✎", style = HarkType.title.copy(fontSize = 16.sp), color = c.paper)
+                }
             }
         }
 

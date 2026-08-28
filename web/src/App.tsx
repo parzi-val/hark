@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedStarterIfEmpty, TaskEntity, SettingsEntity, DEFAULT_BASE_URL, DEFAULT_MODEL } from './db/db';
 import { FocusedNote } from './ai/groq';
 import { focusedNoteOf, newShelfNote } from './db/actions';
+import { syncNow, isSyncEnabled } from './sync/sync';
 import { Header } from './components/Header';
 import { StreamView } from './components/StreamView';
 import { GridView } from './components/GridView';
@@ -41,6 +42,19 @@ export function App() {
     } else if (params.get('action') === 'write') {
       setShowCompose(true);
     }
+  }, []);
+
+  // Sync on open and whenever the tab regains focus, if Drive sync is enabled. Silent —
+  // a lapsed session just no-ops until the user signs in again from Settings.
+  useEffect(() => {
+    if (!isSyncEnabled()) return;
+    const run = () => void syncNow().catch(() => {});
+    run();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') run();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
   // Reactive DB queries. `deleted` is stored as a boolean, which IndexedDB can't index

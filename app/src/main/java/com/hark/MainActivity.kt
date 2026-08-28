@@ -16,16 +16,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hark.ui.compose.ComposeScreen
+import com.hark.ui.lexicon.LexiconScreen
+import com.hark.ui.lexicon.LexiconWordScreen
 import com.hark.ui.note.NoteDetailScreen
 import com.hark.ui.recall.RecallScreen
 import com.hark.ui.settings.SettingsScreen
@@ -37,6 +42,7 @@ import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkTheme
 import com.hark.ui.theme.HarkType
 import com.hark.ui.today.TodayScreen
+import kotlinx.coroutines.launch
 
 sealed interface Screen {
     data object Splash : Screen
@@ -49,10 +55,11 @@ sealed interface Screen {
     data object Settings : Tab
 
     // Pushed full-screen (no bottom nav).
-    data object Shelf : Screen
     data class Talk(val focusedNoteId: Long? = null) : Screen
     data object Compose : Screen
     data class NoteDetail(val noteId: Long) : Screen
+    data object Lexicon : Screen
+    data class LexiconEntry(val wordId: String) : Screen
 }
 
 class MainActivity : ComponentActivity() {
@@ -144,25 +151,18 @@ private fun AppNavigation(currentScreen: Screen, onNavigate: (Screen) -> Unit, o
         is Screen.Tab -> Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().weight(1f)) {
                 when (currentScreen) {
-                    Screen.Stream -> StreamScreen(
-                        onTalk = { onNavigate(Screen.Talk()) },
-                        onWrite = { onNavigate(Screen.Compose) },
-                        onOpenSettings = { onNavigate(Screen.Settings) },
+                    Screen.Stream -> StreamShelfPager(onNavigate = onNavigate)
+                    Screen.Today -> TodayScreen(
                         onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
-                        onToggleShelf = { onNavigate(Screen.Shelf) },
+                        onOpenLexicon = { onNavigate(Screen.Lexicon) },
+                        onOpenWord = { onNavigate(Screen.LexiconEntry(it)) },
                     )
-                    Screen.Today -> TodayScreen(onOpenNote = { onNavigate(Screen.NoteDetail(it)) })
                     Screen.Recall -> RecallScreen(onOpenNote = { onNavigate(Screen.NoteDetail(it)) })
                     Screen.Settings -> SettingsScreen(onClose = onBack)
                 }
             }
             BottomNav(current = currentScreen, onTab = onNavigate)
         }
-
-        Screen.Shelf -> ShelfScreen(
-            onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
-            onToggleStream = onBack,
-        )
 
         is Screen.Talk -> TalkScreen(
             onClose = onBack,
@@ -178,6 +178,48 @@ private fun AppNavigation(currentScreen: Screen, onNavigate: (Screen) -> Unit, o
             onClose = onBack,
             onTalkToEdit = { onNavigate(Screen.Talk(focusedNoteId = currentScreen.noteId)) },
         )
+        Screen.Lexicon -> LexiconScreen(
+            onClose = onBack,
+            onOpenWord = { onNavigate(Screen.LexiconEntry(it)) },
+        )
+        is Screen.LexiconEntry -> LexiconWordScreen(
+            wordId = currentScreen.wordId,
+            onClose = onBack,
+            onOpenArchive = { onNavigate(Screen.Lexicon) },
+        )
+    }
+}
+
+/**
+ * Stream and Shelf as two horizontally-swipeable faces of the home tab.
+ * Swipe left → Shelf slides in; swipe right (or Back) → Stream. The top-right
+ * Shelf/Stream buttons animate the same pager. Bottom nav stays put underneath.
+ */
+@Composable
+private fun StreamShelfPager(onNavigate: (Screen) -> Unit) {
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val scope = rememberCoroutineScope()
+
+    // On the Shelf page, Back returns to Stream instead of exiting the app.
+    BackHandler(enabled = pagerState.currentPage == 1) {
+        scope.launch { pagerState.animateScrollToPage(0) }
+    }
+
+    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        if (page == 0) {
+            StreamScreen(
+                onTalk = { onNavigate(Screen.Talk()) },
+                onWrite = { onNavigate(Screen.Compose) },
+                onOpenSettings = { onNavigate(Screen.Settings) },
+                onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
+                onToggleShelf = { scope.launch { pagerState.animateScrollToPage(1) } },
+            )
+        } else {
+            ShelfScreen(
+                onOpenNote = { onNavigate(Screen.NoteDetail(it)) },
+                onToggleStream = { scope.launch { pagerState.animateScrollToPage(0) } },
+            )
+        }
     }
 }
 

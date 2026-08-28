@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { SettingsEntity, db, DEFAULT_BASE_URL, DEFAULT_MODEL } from '../db/db';
-import { X, Smartphone } from 'lucide-react';
+import { X, Smartphone, Cloud, Check, RefreshCw } from 'lucide-react';
+import {
+  isSyncEnabled,
+  setSyncEnabled,
+  isApiKeySynced,
+  setApiKeySynced,
+  signIn,
+  signOut,
+  syncNow,
+  pushSettings,
+  pullSettingsIfFresh,
+} from '../sync/sync';
 
 interface SettingsModalProps {
   settings: SettingsEntity;
@@ -20,6 +31,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showApiKey, setShowApiKey] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Sync state (Google Drive appData).
+  const [synced, setSynced] = useState(isSyncEnabled());
+  const [keyOptIn, setKeyOptIn] = useState(isApiKeySynced());
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+
   // Theme is applied live, like the Android screen.
   const applyTheme = async (t: 'SYSTEM' | 'LIGHT' | 'DARK') => {
     setThemeMode(t);
@@ -34,6 +51,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     });
     setSaved(true);
     onSaved();
+    if (isSyncEnabled()) {
+      try {
+        await pushSettings();
+      } catch {
+        /* offline or session lapsed — non-fatal */
+      }
+    }
+  };
+
+  const handleSignIn = async () => {
+    setSyncBusy(true);
+    setSyncMsg('');
+    try {
+      await signIn();
+      setSyncEnabled(true);
+      setSynced(true);
+      await pullSettingsIfFresh();
+      const s = await db.settings.get(1);
+      if (s) {
+        setApiKey(s.apiKey);
+        setBaseUrl(s.baseUrl || DEFAULT_BASE_URL);
+        setModel(s.model || DEFAULT_MODEL);
+      }
+      await syncNow();
+      setSyncMsg('Synced.');
+    } catch {
+      setSyncMsg('Sign-in failed — try again.');
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const handleSyncNow = async () => {
+    setSyncBusy(true);
+    setSyncMsg('');
+    try {
+      await syncNow();
+      setSyncMsg('Synced.');
+    } catch {
+      setSyncMsg('Sync failed — sign in again?');
+    } finally {
+      setSyncBusy(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    signOut();
+    setSyncEnabled(false);
+    setSynced(false);
+    setSyncMsg('');
+  };
+
+  const toggleKeyOptIn = () => {
+    const next = !keyOptIn;
+    setKeyOptIn(next);
+    setApiKeySynced(next);
   };
 
   const inputClass =
@@ -77,6 +150,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 );
               })}
             </div>
+          </div>
+
+          <hr className="border-ink-hairline" />
+
+          {/* Sync (Google Drive appData) */}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <h2 className="font-serif font-bold text-base text-ink">Sync</h2>
+              <p className="font-serif text-xs text-ink-muted leading-relaxed">
+                Keep your notes in step across devices through your own private Google Drive. Optional — Hark works fully offline without it.
+              </p>
+            </div>
+
+            {!synced ? (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                disabled={syncBusy}
+                className="w-full h-11 rounded-full bg-ink text-paper font-mono text-xs font-semibold tracking-wider hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Cloud className="w-4 h-4" />
+                {syncBusy ? 'CONNECTING…' : 'SIGN IN WITH GOOGLE'}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10.5px] uppercase tracking-wider text-ink flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-rust" />
+                    Connected · Drive
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="font-mono text-[10.5px] uppercase tracking-wider text-ink-muted hover:text-ink"
+                  >
+                    SIGN OUT
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSyncNow}
+                  disabled={syncBusy}
+                  className="w-full h-10 rounded-full border border-ink-hairline text-ink font-mono text-xs tracking-wider hover:border-ink disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncBusy ? 'animate-spin' : ''}`} />
+                  {syncBusy ? 'SYNCING…' : 'SYNC NOW'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleKeyOptIn}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-paper-card border border-ink-hairline text-left"
+                >
+                  <span className="font-serif text-xs text-ink-muted">
+                    Also sync my API key
+                    <span className="block text-ink-faint">Stored only in your private Drive folder.</span>
+                  </span>
+                  <span className={`shrink-0 w-9 h-5 rounded-full relative transition-colors ${keyOptIn ? 'bg-rust' : 'bg-ink-hairline'}`}>
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-paper transition-all ${keyOptIn ? 'left-4' : 'left-0.5'}`} />
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {syncMsg && <p className="font-serif text-xs text-rust font-semibold">{syncMsg}</p>}
           </div>
 
           <hr className="border-ink-hairline" />

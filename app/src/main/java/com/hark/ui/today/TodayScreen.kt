@@ -10,18 +10,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.hark.data.local.NoteEntity
 import com.hark.data.local.TaskEntity
+import com.hark.ui.components.LexiconCard
 import com.hark.ui.components.MetaLabel
 import com.hark.ui.components.NoteDash
 import com.hark.ui.components.SectionLabel
@@ -36,25 +39,66 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
-fun TodayScreen(onOpenNote: (Long) -> Unit) {
-    val vm: TodayViewModel = harkViewModel { TodayViewModel(it.repository) }
+fun TodayScreen(
+    onOpenNote: (Long) -> Unit,
+    onOpenLexicon: () -> Unit = {},
+    onOpenWord: (String) -> Unit = {},
+) {
+    val vm: TodayViewModel = harkViewModel { TodayViewModel(it.repository, it.lexiconRepository, it.settingsStore) }
     val state by vm.ui.collectAsStateWithLifecycle()
     val c = Hark.colors
     val today = LocalDate.now(ZoneId.systemDefault())
 
     LazyColumn(Modifier.fillMaxSize().background(c.paper)) {
+        // Header with Date and Lexis Trigger
         item {
-            Column(Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                MetaLabel(today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()), color = c.inkFaint)
-                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("${today.dayOfMonth}", style = HarkType.displayNumber, color = c.ink)
-                    Text(
-                        today.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).lowercase(),
-                        style = HarkType.noteTitle.copy(fontStyle = FontStyle.Italic),
-                        color = c.inkMuted,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 26.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    modifier = Modifier.padding(start = 26.dp, top = 24.dp, bottom = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    MetaLabel(today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()), color = c.inkFaint)
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("${today.dayOfMonth}", style = HarkType.displayNumber, color = c.ink)
+                        Text(
+                            today.month.getDisplayName(TextStyle.FULL, Locale.getDefault()).lowercase(),
+                            style = HarkType.noteTitle.copy(fontStyle = FontStyle.Italic),
+                            color = c.inkMuted,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
                 }
+
+                // Lexis Archive (λέξις) button
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onOpenLexicon() }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                ) {
+                    Text("λέξις", style = HarkType.label, color = c.rust)
+                    MetaLabel("ARCHIVE", color = c.inkMuted)
+                }
+            }
+        }
+
+        // Word of the Day Card (λέξις)
+        val word = state.wordOfTheDay
+        if (state.showLexiconCard && word != null) {
+            item {
+                LexiconCard(
+                    word = word,
+                    modifier = Modifier.padding(start = 26.dp, end = 26.dp, top = 6.dp, bottom = 14.dp),
+                    onClick = { onOpenWord(word.id) },
+                )
             }
         }
 

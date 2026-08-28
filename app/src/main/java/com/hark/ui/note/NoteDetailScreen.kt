@@ -1,5 +1,6 @@
 package com.hark.ui.note
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -93,6 +94,10 @@ fun NoteDetailScreen(
     val handleBack = {
         vm.closeNote(title, body, onClose)
     }
+
+    // System back / back-gesture must run the same discard-empty logic as the on-screen Back,
+    // otherwise a blank note exits as a saved "Untitled note" instead of being trashed.
+    BackHandler { handleBack() }
 
     // Delete confirmation dialog
     if (showDeleteConfirm) {

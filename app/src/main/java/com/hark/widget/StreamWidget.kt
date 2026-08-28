@@ -136,6 +136,9 @@ class StreamWidget : GlanceAppWidget() {
 
             val now = LocalDate.now()
             val dateText = "${now.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.getDefault()).uppercase()} ${now.dayOfMonth}"
+            val word = if (settings.showWordOfTheDay) {
+                app?.container?.lexiconRepository?.getWordForDate(now)
+            } else null
 
             Column(
                 modifier = GlanceModifier
@@ -152,7 +155,11 @@ class StreamWidget : GlanceAppWidget() {
                 ) {
                     MonoLabel(context, syneMono, "HARK · $openCount OPEN", 13f, ink.toArgb())
                     Spacer(GlanceModifier.defaultWeight())
-                    MonoLabel(context, syneMono, dateText, 13f, inkFaint.toArgb())
+                    if (word != null) {
+                        MonoLabel(context, syneMono, "❖ ${word.word.uppercase()} · $dateText", 12f, rust.toArgb())
+                    } else {
+                        MonoLabel(context, syneMono, dateText, 13f, inkFaint.toArgb())
+                    }
                 }
                 Spacer(GlanceModifier.height(10.dp))
 

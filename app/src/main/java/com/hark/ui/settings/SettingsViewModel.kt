@@ -29,4 +29,8 @@ class SettingsViewModel(private val store: SettingsStore) : ViewModel() {
     fun setWidgetShowToolbar(show: Boolean) {
         store.setWidgetShowToolbar(show)
     }
+
+    fun setShowWordOfTheDay(show: Boolean) {
+        store.setShowWordOfTheDay(show)
+    }
 }
