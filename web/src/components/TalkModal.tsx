@@ -124,9 +124,9 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
       <div className="bg-paper border border-ink-hairline rounded-3xl p-8 max-w-md w-full shadow-2xl flex flex-col text-center space-y-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="w-full flex items-center justify-between">
-          <span className="font-mono text-label text-rust uppercase flex items-center gap-1.5">
+          <span className="font-mono text-label text-rust font-semibold flex items-center gap-1.5">
             {status === 'LISTENING' && <span className="w-2 h-2 rounded-full bg-rust animate-pulse" />}
-            {focusedNote ? 'TALK TO EDIT' : 'TALK TO HARK'}
+            {focusedNote ? 'Talk to edit' : 'Talk to Hark'}
           </span>
           <button onClick={onClose} className="p-1 rounded-full text-ink-faint hover:text-ink transition-colors">
             <X className="w-5 h-5" />
@@ -148,16 +148,16 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
             <button
               type="button"
               onClick={() => setExtractTasks((v) => !v)}
-              className="font-mono text-meta uppercase text-ink-muted self-center"
+              className="font-mono text-meta text-ink-muted self-center font-medium"
             >
-              Extract tasks: <span className={extractTasks ? 'text-rust' : 'text-ink-faint'}>{extractTasks ? 'ON' : 'OFF'}</span>
+              Extract tasks: <span className={extractTasks ? 'text-rust font-semibold' : 'text-ink-faint'}>{extractTasks ? 'On' : 'Off'}</span>
             </button>
             <button
               onClick={handleFinishRecording}
-              className="w-full py-4 rounded-2xl bg-ink text-paper font-mono text-label hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
             >
               <Mic className="w-4 h-4 text-rust" />
-              <span>DONE SPEAKING</span>
+              <span>Done speaking</span>
             </button>
           </>
         )}
@@ -172,7 +172,7 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
         {status === 'RESULT' && pending && (
           <>
             <div className="text-left space-y-3 max-h-[46vh] overflow-y-auto">
-              <div className="font-mono text-meta text-rust uppercase">{actionHeader(pending)}</div>
+              <div className="font-mono text-meta text-rust font-semibold">{actionHeader(pending)}</div>
               {pending.action !== 'append' && pending.title && (
                 <h2 className="font-serif text-note-title text-ink">{pending.title}</h2>
               )}
@@ -183,7 +183,7 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
                     <div key={i} className="flex items-center gap-2.5">
                       <span className="w-4 h-4 rounded-sm border border-checkbox-border flex-shrink-0" />
                       <span className="font-serif text-item text-ink flex-1">{t.title}</span>
-                      {t.dueHint && <span className="font-mono text-meta text-rust uppercase">{t.dueHint}</span>}
+                      {t.dueHint && <span className="font-mono text-meta text-rust font-medium">{t.dueHint}</span>}
                     </div>
                   ))}
                 </div>
@@ -192,15 +192,15 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setPending(null); startRecording(); }}
-                className="flex-1 py-3.5 rounded-2xl border border-ink-hairline text-ink-muted hover:text-ink font-mono text-label"
+                className="flex-1 py-3.5 rounded-2xl border border-ink-hairline text-ink-muted hover:text-ink font-mono text-label font-medium"
               >
-                AGAIN
+                Again
               </button>
               <button
                 onClick={handleKeep}
-                className="flex-[2] py-3.5 rounded-2xl bg-ink text-paper font-mono text-label hover:opacity-90 transition-opacity"
+                className="flex-[2] py-3.5 rounded-2xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 transition-opacity"
               >
-                KEEP
+                Keep
               </button>
             </div>
           </>
@@ -209,8 +209,8 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
         {status === 'ERROR' && (
           <>
             <div className="py-4 font-mono text-meta text-rust bg-rust-muted p-3 rounded-xl text-left break-words">{errorMsg}</div>
-            <button onClick={onClose} className="w-full py-3 rounded-2xl bg-ink text-paper font-mono text-label">
-              CLOSE
+            <button onClick={onClose} className="w-full py-3 rounded-2xl bg-ink text-paper font-mono text-label font-medium">
+              Close
             </button>
           </>
         )}

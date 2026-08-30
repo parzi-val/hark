@@ -91,26 +91,26 @@ export const StreamView: React.FC<StreamViewProps> = ({
   });
 
   const groups = [
-    { label: 'PINNED', list: pinned },
-    { label: 'TODAY', list: todayItems },
-    { label: 'EARLIER', list: earlierItems },
+    { label: 'Pinned', list: pinned },
+    { label: 'Today', list: todayItems },
+    { label: 'Earlier', list: earlierItems },
   ].filter((g) => g.list.length > 0);
 
   if (groups.length === 0) {
     return (
       <div className="py-24 text-center">
         <p className="text-ink-faint font-serif text-secondary">
-          Nothing here yet. Tap TALK to capture your mind.
+          Nothing here yet. Tap Talk to capture your mind.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto divide-y divide-ink-hairline">
+    <div className="max-w-3xl mx-auto px-6 py-6 divide-y divide-ink-hairline">
       {groups.map((group) => (
         <div key={group.label} className="pt-6 pb-2">
-          <div className="px-6 mb-3 font-mono text-label text-ink-faint uppercase">
+          <div className="px-6 mb-3 font-mono text-label text-ink-faint font-medium">
             {group.label}
           </div>
 
@@ -179,7 +179,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
                               {t.title}
                             </span>
                             {t.dueHint && (
-                              <span className="font-mono text-meta text-rust uppercase">
+                              <span className="font-mono text-meta text-rust font-medium">
                                 {t.dueHint}
                               </span>
                             )}
@@ -212,7 +212,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
                       {task.title}
                     </span>
                     {task.dueHint && (
-                      <span className="font-mono text-meta text-rust uppercase">
+                      <span className="font-mono text-meta text-rust font-medium">
                         {task.dueHint}
                       </span>
                     )}

@@ -11,6 +11,7 @@ export interface SyncNote {
   source: 'SPOKEN' | 'TYPED';
   pinnedToWidget: boolean;
   shelf: boolean;
+  archived?: boolean; // ponytail: cross-platform archived status
   createdAt: number;
   updatedAt: number;
   deleted: boolean;
@@ -24,6 +25,7 @@ export interface SyncTask {
   doneAt: number | null;
   dueAt: number | null;
   dueHint: string | null;
+  deferred?: boolean; // ponytail: cross-platform deferred status
   createdAt: number;
   updatedAt: number;
   deleted: boolean;

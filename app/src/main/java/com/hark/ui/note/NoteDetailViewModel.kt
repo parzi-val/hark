@@ -146,6 +146,23 @@ class NoteDetailViewModel(
         }
     }
 
+    fun archiveNote(title: String, body: String, onArchived: () -> Unit) {
+        autoSaveJob?.cancel()
+        viewModelScope.launch {
+            // Persist pending edits, then file it away — one coroutine so the order is guaranteed.
+            repo.updateNote(noteId, title, body)
+            repo.archiveNote(noteId)
+            onArchived()
+        }
+    }
+
+    fun unarchiveNote(onDone: () -> Unit) {
+        viewModelScope.launch {
+            repo.unarchiveNote(noteId)
+            onDone()
+        }
+    }
+
     fun addTask(title: String) {
         if (title.isBlank()) return
         viewModelScope.launch {

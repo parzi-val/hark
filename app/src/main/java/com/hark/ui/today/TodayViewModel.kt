@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 data class TodayUiState(
@@ -22,6 +23,7 @@ data class TodayUiState(
     val writtenToday: List<NoteEntity> = emptyList(),
     val wordOfTheDay: LexiconWord? = null,
     val showLexiconCard: Boolean = true,
+    val greeting: String = "Good day",
 ) {
     val isEmpty: Boolean get() = overdue.isEmpty() && dueToday.isEmpty() && writtenToday.isEmpty() && (!showLexiconCard || wordOfTheDay == null)
 }
@@ -36,8 +38,21 @@ class TodayViewModel(
         combine(repo.tasks, repo.notes, settingsStore.settings) { tasks, notes, settings ->
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
+            val hour = LocalTime.now(zone).hour
+            val timeGreeting = when (hour) {
+                in 5..11 -> "Good morning"
+                in 12..16 -> "Good afternoon"
+                else -> "Good evening"
+            }
+            val greeting = if (settings.userName.isNotBlank()) {
+                "$timeGreeting, ${settings.userName}"
+            } else {
+                timeGreeting
+            }
+
             fun dateOf(t: TaskEntity) = t.dueAt?.atZone(zone)?.toLocalDate()
-            val open = tasks.filter { !it.done }
+            // Deferred tasks are set aside — keep them off Today's plate (they live in the Stream).
+            val open = tasks.filter { !it.done && !it.deferred }
             val word = lexiconRepo.getWordForDate(today)
             TodayUiState(
                 overdue = open.filter { dateOf(it)?.isBefore(today) == true }.sortedBy { it.dueAt },
@@ -45,10 +60,15 @@ class TodayViewModel(
                 writtenToday = notes.filter { it.createdAt.atZone(zone).toLocalDate() == today },
                 wordOfTheDay = word,
                 showLexiconCard = settings.showWordOfTheDay,
+                greeting = greeting,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())
 
     fun toggle(task: TaskEntity) {
         viewModelScope.launch { repo.setTaskDone(task, !task.done) }
+    }
+
+    fun toggleDeferred(task: TaskEntity) {
+        viewModelScope.launch { repo.setTaskDeferred(task, !task.deferred) }
     }
 }

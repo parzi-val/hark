@@ -49,6 +49,8 @@ import com.hark.ui.components.NoteDash
 import com.hark.ui.components.SectionLabel
 import com.hark.ui.components.TalkNib
 import com.hark.ui.components.TaskCheck
+import com.hark.ui.components.TaskTapMenu
+import com.hark.ui.components.stripMarkdown
 import com.hark.ui.harkViewModel
 import com.hark.ui.task.EditTaskDialog
 import com.hark.ui.theme.Hark
@@ -134,10 +136,11 @@ fun StreamScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         FilterTab("ALL", StreamFilter.ALL, state.filter, vm::setFilter)
                         FilterTab("OPEN", StreamFilter.OPEN, state.filter, vm::setFilter)
                         FilterTab("NOTES", StreamFilter.NOTES, state.filter, vm::setFilter)
+                        FilterTab("ARCHIVE", StreamFilter.ARCHIVE, state.filter, vm::setFilter)
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -185,6 +188,7 @@ fun StreamScreen(
                                 onToggle = { vm.toggle(it) },
                                 onOpenNote = onOpenNote,
                                 onEditTask = { editingTask = it },
+                                onToggleDeferred = { vm.toggleDeferred(it) },
                             )
                         }
                     }
@@ -231,12 +235,13 @@ private fun StreamRow(
     onToggle: (TaskEntity) -> Unit,
     onOpenNote: (Long) -> Unit,
     onEditTask: (TaskEntity) -> Unit,
+    onToggleDeferred: (TaskEntity) -> Unit,
 ) {
     val c = Hark.colors
     Column {
         HorizontalDivider(color = c.inkHairline)
         when (item) {
-            is StreamItem.Task -> TaskLine(item.task, onToggle = onToggle, onEdit = onEditTask, indent = 22.dp)
+            is StreamItem.Task -> TaskLine(item.task, onToggle = onToggle, onEdit = onEditTask, onToggleDeferred = onToggleDeferred, indent = 22.dp)
 
             is StreamItem.Note -> {
                 val hasTasks = item.tasks.isNotEmpty()
@@ -254,7 +259,7 @@ private fun StreamRow(
                         Text(item.note.title, style = HarkType.item, color = c.ink)
                         if (item.note.body.isNotBlank()) {
                             Text(
-                                item.note.body,
+                                stripMarkdown(item.note.body),
                                 style = HarkType.secondary,
                                 color = c.inkMuted,
                                 maxLines = 2,
@@ -266,7 +271,7 @@ private fun StreamRow(
                 }
                 // Tasks belonging to this note, nested under it.
                 item.tasks.forEach { task ->
-                    TaskLine(task, onToggle = onToggle, onEdit = onEditTask, indent = 51.dp, topPad = 6.dp, bottomPad = 6.dp)
+                    TaskLine(task, onToggle = onToggle, onEdit = onEditTask, onToggleDeferred = onToggleDeferred, indent = 51.dp, topPad = 6.dp, bottomPad = 6.dp)
                 }
                 if (hasTasks) Spacer(Modifier.height(12.dp))
             }
@@ -279,30 +284,39 @@ private fun TaskLine(
     task: TaskEntity,
     onToggle: (TaskEntity) -> Unit,
     onEdit: (TaskEntity) -> Unit,
+    onToggleDeferred: (TaskEntity) -> Unit,
     indent: androidx.compose.ui.unit.Dp,
     topPad: androidx.compose.ui.unit.Dp = 16.dp,
     bottomPad: androidx.compose.ui.unit.Dp = 16.dp,
 ) {
     val c = Hark.colors
+    val dimmed = task.done || task.deferred
     Row(
         Modifier.fillMaxWidth().padding(start = indent, end = 22.dp, top = topPad, bottom = bottomPad),
         horizontalArrangement = Arrangement.spacedBy(13.dp),
         verticalAlignment = Alignment.Top,
     ) {
         TaskCheck(task.done, onToggle = { onToggle(task) }, modifier = Modifier.padding(top = 3.dp))
-        Row(
-            modifier = Modifier.weight(1f).clickable { onEdit(task) },
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.Top,
+        TaskTapMenu(
+            deferred = task.deferred,
+            onClick = { onEdit(task) },
+            onToggleDeferred = { onToggleDeferred(task) },
+            modifier = Modifier.weight(1f),
         ) {
-            Text(
-                text = task.title,
-                style = HarkType.item,
-                color = if (task.done) c.inkFaint else c.ink,
-                textDecoration = if (task.done) TextDecoration.LineThrough else null,
-                modifier = Modifier.weight(1f),
-            )
-            taskMeta(task)?.let { MetaLabel(it, color = if (isOverdue(task)) c.rust else c.inkFaint) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Text(
+                    text = task.title,
+                    style = HarkType.item,
+                    color = if (dimmed) c.inkFaint else c.ink,
+                    textDecoration = if (task.done) TextDecoration.LineThrough else null,
+                    modifier = Modifier.weight(1f),
+                )
+                taskMeta(task)?.let { MetaLabel(it, color = if (isOverdue(task)) c.rust else c.inkFaint) }
+            }
         }
     }
 }
@@ -436,6 +450,7 @@ private fun groupItems(items: List<StreamItem>): List<Pair<String, List<StreamIt
 
 private fun taskMeta(t: TaskEntity): String? = when {
     t.done -> "DONE"
+    t.deferred -> "DEFERRED"
     t.dueHint != null -> t.dueHint
     t.dueAt != null -> shortDate(t.dueAt)
     else -> null

@@ -77,23 +77,23 @@ fun SettingsScreen(onClose: () -> Unit) {
     var syncBusy by remember { mutableStateOf(false) }
     var syncMsg by remember { mutableStateOf("") }
 
-    val consentLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartIntentSenderForResult(),
+    val signInLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         val data = result.data
         if (result.resultCode == Activity.RESULT_OK && data != null) {
             scope.launch {
                 try {
-                    val authRes = GoogleAuth.resultFromIntent(ctx, data)
-                    if (authRes.accessToken != null) {
+                    val account = GoogleAuth.resultFromIntent(data)
+                    if (account != null) {
                         signedIn = true
                         sync.onSignedIn()
                         syncMsg = "Synced."
                     } else {
-                        syncMsg = "Sign-in failed — try again."
+                        syncMsg = GoogleAuth.lastError ?: "Sign-in failed — try again."
                     }
                 } catch (e: Exception) {
-                    syncMsg = "Sign-in failed — try again."
+                    syncMsg = GoogleAuth.lastError ?: "Sync failed: ${e.message}"
                 } finally {
                     syncBusy = false
                 }
@@ -105,25 +105,18 @@ fun SettingsScreen(onClose: () -> Unit) {
     }
 
     val startSignIn = {
+        syncBusy = true
+        syncMsg = ""
+        signInLauncher.launch(GoogleAuth.getSignInIntent(ctx))
+        Unit
+    }
+
+    val handleSignOut = {
         scope.launch {
-            syncBusy = true
+            GoogleAuth.signOut(ctx)
+            sync.signOut()
+            signedIn = false
             syncMsg = ""
-            try {
-                val res = GoogleAuth.authorize(ctx)
-                val pi = res.pendingIntent
-                if (res.hasResolution() && pi != null) {
-                    consentLauncher.launch(IntentSenderRequest.Builder(pi.intentSender).build())
-                    // syncBusy stays true until the consent result returns
-                } else {
-                    signedIn = true
-                    sync.onSignedIn()
-                    syncMsg = "Synced."
-                    syncBusy = false
-                }
-            } catch (e: Exception) {
-                syncMsg = "Sign-in failed — try again."
-                syncBusy = false
-            }
         }
         Unit
     }
@@ -153,6 +146,27 @@ fun SettingsScreen(onClose: () -> Unit) {
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            // Profile / Name section
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("YOUR NAME")
+                OutlinedTextField(
+                    value = currentSettings.userName,
+                    onValueChange = { vm.setUserName(it) },
+                    placeholder = { Text("How should Hark greet you?", style = HarkType.secondary, color = c.inkFaint) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = c.ink,
+                        unfocusedBorderColor = c.checkboxBorder,
+                        focusedTextColor = c.ink,
+                        unfocusedTextColor = c.ink,
+                    ),
+                    textStyle = HarkType.secondary,
+                )
+            }
+
+            HorizontalDivider(color = c.inkHairline)
+
             // App Appearance section (LIVE UPDATING)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionLabel("APP THEME")
@@ -354,29 +368,30 @@ fun SettingsScreen(onClose: () -> Unit) {
                         )
                     }
 
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(22.dp))
-                            .border(1.dp, c.inkHairline, RoundedCornerShape(22.dp))
-                            .clickable(enabled = !syncBusy) {
-                                scope.launch {
-                                    syncBusy = true
-                                    syncMsg = ""
-                                    try {
-                                        sync.syncNow()
-                                        syncMsg = "Synced."
-                                    } catch (e: Exception) {
-                                        syncMsg = "Sync failed — sign in again?"
-                                    } finally {
-                                        syncBusy = false
-                                    }
-                                }
-                            },
-                        contentAlignment = Alignment.Center,
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.paperRaised)
+                            .border(1.dp, c.inkHairline, RoundedCornerShape(12.dp))
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(if (syncBusy) "SYNCING…" else "SYNC NOW", style = HarkType.label, color = c.ink)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text("Automatic Cloud Sync", style = HarkType.item, color = c.ink)
+                            Text("Syncs live on edit, save, delete & resume", style = HarkType.meta, color = c.inkFaint)
+                        }
+                        Text(
+                            "● ACTIVE",
+                            style = HarkType.label,
+                            color = c.rust,
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
                     }
 
                     Row(
@@ -389,6 +404,11 @@ fun SettingsScreen(onClose: () -> Unit) {
                                 val next = !optIn
                                 optIn = next
                                 sync.isApiKeySynced = next
+                                if (signedIn) {
+                                    scope.launch {
+                                        runCatching { sync.pushSettings() }
+                                    }
+                                }
                             }
                             .padding(14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,

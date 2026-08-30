@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -28,8 +29,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -84,6 +87,9 @@ fun LexiconScreen(
     val vm: LexiconViewModel = harkViewModel { LexiconViewModel(it.lexiconRepository) }
     val state by vm.ui.collectAsStateWithLifecycle()
     val c = Hark.colors
+    var showTiers by remember { mutableStateOf(false) }
+
+    if (showTiers) TierGuideDialog(onDismiss = { showTiers = false })
 
     Column(
         Modifier
@@ -99,6 +105,7 @@ fun LexiconScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
+                modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -106,11 +113,21 @@ fun LexiconScreen(
                     "The Lexicon",
                     style = HarkType.title.copy(fontSize = 24.sp, lineHeight = 28.sp),
                     color = c.rust,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 MetaLabel("λέξις · ${state.words.size}", color = c.inkFaint)
             }
 
-            MetaLabel("↩ Back", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
+            // Actions kept intrinsic (non-weighted) so the left title yields space first — otherwise
+            // "↩ Back" gets squeezed to one glyph per line on narrow screens.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MetaLabel("ⓘ TIERS", color = c.inkMuted, modifier = Modifier.clickable { showTiers = true })
+                MetaLabel("↩ Back", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
+            }
         }
 
         // Search field
@@ -211,5 +228,65 @@ private fun TierChip(
             style = HarkType.meta,
             color = if (isSelected) c.paper else c.inkMuted,
         )
+    }
+}
+
+private data class TierInfo(val n: Int, val label: String, val blurb: String)
+
+// The tier ladder is fixed (1..5); descriptions are static, so no need to derive them from data.
+private val TIER_GUIDE = listOf(
+    TierInfo(1, "Elevated", "Everyday ideas in a sharper, more polished register."),
+    TierInfo(2, "Discriminating", "Words that draw a fine distinction most people blur."),
+    TierInfo(3, "Literary", "At home in essays and prose; rare in speech."),
+    TierInfo(4, "Esoteric", "Specialist or arcane — expect a raised eyebrow."),
+    TierInfo(5, "Legendary", "Gloriously obscure. Deploy once, then retire it."),
+)
+
+@Composable
+private fun TierGuideDialog(onDismiss: () -> Unit) {
+    val c = Hark.colors
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(c.paperRaised)
+                .border(1.dp, c.inkHairline, RoundedCornerShape(20.dp))
+                .verticalScroll(rememberScrollState())
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("The Tiers", style = HarkType.title.copy(fontSize = 20.sp), color = c.rust)
+                MetaLabel("λέξις", color = c.inkFaint)
+            }
+            Text(
+                "Every word carries a tier — how rare it is, and how daring it is to use.",
+                style = HarkType.secondary,
+                color = c.inkMuted,
+            )
+            TIER_GUIDE.forEach { t ->
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    SectionLabel(
+                        text = "TIER ${t.n} · ${t.label.uppercase()}",
+                        color = if (t.n >= 4) c.rust else c.inkMuted,
+                    )
+                    Text(t.blurb, style = HarkType.body, color = c.ink.copy(alpha = 0.85f))
+                }
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onDismiss() }
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                MetaLabel("GOT IT", color = c.rust)
+            }
+        }
     }
 }

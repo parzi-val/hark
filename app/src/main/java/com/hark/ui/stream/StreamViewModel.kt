@@ -11,23 +11,31 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class StreamFilter { ALL, OPEN, NOTES }
+enum class StreamFilter { ALL, OPEN, NOTES, ARCHIVE }
 
 data class StreamUiState(
     val items: List<StreamItem> = emptyList(),
     val openCount: Int = 0,
     val shelfCount: Int = 0,
+    val archived: List<StreamItem.Note> = emptyList(),
     val filter: StreamFilter = StreamFilter.ALL,
 ) {
     val visible: List<StreamItem> get() = when (filter) {
         StreamFilter.ALL -> items
-        StreamFilter.OPEN -> items.flatMap { item ->
+        // OPEN keeps the parent-note grouping: each note shows only its not-done tasks nested
+        // under its header (deferred stay visible, grayed); loose open tasks stand alone.
+        StreamFilter.OPEN -> items.mapNotNull { item ->
             when (item) {
-                is StreamItem.Note -> item.tasks.filter { !it.done }.map { StreamItem.Task(it) }
-                is StreamItem.Task -> if (!item.task.done) listOf(item) else emptyList()
+                is StreamItem.Note -> item.tasks.filter { !it.done }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { StreamItem.Note(item.note, it) }
+                is StreamItem.Task -> if (!item.task.done) item else null
             }
         }
+        // NOTES = notes as documents (no task checklists — that's what ALL is for).
         StreamFilter.NOTES -> items.filterIsInstance<StreamItem.Note>()
+            .map { StreamItem.Note(it.note, emptyList()) }
+        StreamFilter.ARCHIVE -> archived
     }
 }
 
@@ -36,14 +44,24 @@ class StreamViewModel(private val repo: HarkRepository) : ViewModel() {
     private val filter = kotlinx.coroutines.flow.MutableStateFlow(StreamFilter.ALL)
 
     val ui: StateFlow<StreamUiState> =
-        combine(repo.stream, repo.openCount, repo.shelfNotes, filter) { items, open, shelfNotes, f ->
-            StreamUiState(items = items, openCount = open, shelfCount = shelfNotes.size, filter = f)
+        combine(repo.stream, repo.openCount, repo.shelfNotes, repo.archivedNotes, filter) { items, open, shelfNotes, archived, f ->
+            StreamUiState(
+                items = items,
+                openCount = open,
+                shelfCount = shelfNotes.size,
+                archived = archived.map { StreamItem.Note(it, emptyList()) },
+                filter = f,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StreamUiState())
 
     fun setFilter(f: StreamFilter) { filter.value = f }
 
     fun toggle(task: TaskEntity) {
         viewModelScope.launch { repo.setTaskDone(task, !task.done) }
+    }
+
+    fun toggleDeferred(task: TaskEntity) {
+        viewModelScope.launch { repo.setTaskDeferred(task, !task.deferred) }
     }
 
     fun updateTask(taskId: Long, title: String, dueHint: String?) {

@@ -30,6 +30,9 @@ interface NoteDao {
     @Query("UPDATE notes SET shelf = :shelf, pinnedToWidget = :pinned, updatedAt = :now WHERE id = :id")
     suspend fun setShelf(id: Long, shelf: Boolean, pinned: Boolean, now: Instant)
 
+    @Query("UPDATE notes SET archived = :archived, updatedAt = :now WHERE id = :id")
+    suspend fun setArchived(id: Long, archived: Boolean, now: Instant)
+
     @Query("UPDATE notes SET title = :title, body = :body, updatedAt = :now WHERE id = :id")
     suspend fun updateContent(id: Long, title: String, body: String, now: Instant)
 
@@ -74,11 +77,17 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE deleted = 0")
     suspend fun getAllActive(): List<TaskEntity>
 
-    @Query("SELECT COUNT(*) FROM tasks WHERE deleted = 0 AND done = 0")
+    @Query("SELECT COUNT(*) FROM tasks WHERE deleted = 0 AND done = 0 AND deferred = 0")
     fun observeOpenCount(): Flow<Int>
 
-    @Query("UPDATE tasks SET done = :done, doneAt = :doneAt, updatedAt = :updatedAt WHERE id = :id")
+    // Completing (or re-opening) a task always clears the deferred flag — a task is Open,
+    // Deferred, or Completed, never two at once.
+    @Query("UPDATE tasks SET done = :done, doneAt = :doneAt, deferred = 0, updatedAt = :updatedAt WHERE id = :id")
     suspend fun setDone(id: Long, done: Boolean, doneAt: Instant?, updatedAt: Instant)
+
+    // Deferring forces the task open (done = 0); un-deferring leaves it open.
+    @Query("UPDATE tasks SET deferred = :deferred, done = 0, doneAt = NULL, updatedAt = :now WHERE id = :id")
+    suspend fun setDeferred(id: Long, deferred: Boolean, now: Instant)
 
     @Query("SELECT * FROM tasks WHERE sourceNoteId = :noteId AND deleted = 0 ORDER BY createdAt ASC")
     fun observeForNote(noteId: Long): Flow<List<TaskEntity>>

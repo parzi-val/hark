@@ -55,6 +55,22 @@ let tokenClient: TokenClient | null = null;
 let pendingResolve: ((r: TokenResponse) => void) | null = null;
 let pendingReject: ((e: unknown) => void) | null = null;
 
+// The GIS token flow can't fetch a token silently after a page reload (it would pop a dialog), so
+// we persist the token and reuse it until it expires (~1h). Background sync never re-invokes GIS.
+const TOKEN_KEY = 'hark.driveToken';
+try {
+  const raw = localStorage.getItem(TOKEN_KEY);
+  if (raw) {
+    const saved = JSON.parse(raw) as { token: string; expiry: number };
+    if (saved.token && Date.now() < saved.expiry) {
+      accessToken = saved.token;
+      tokenExpiry = saved.expiry;
+    }
+  }
+} catch {
+  /* ignore */
+}
+
 async function getTokenClient(): Promise<TokenClient> {
   await loadGis();
   if (tokenClient) return tokenClient;
@@ -86,6 +102,11 @@ function storeToken(resp: TokenResponse): string {
   if (resp.error || !resp.access_token) throw new Error(resp.error || 'Google authorization failed');
   accessToken = resp.access_token;
   tokenExpiry = Date.now() + (resp.expires_in ?? 3600) * 1000 - 60_000; // renew a minute early
+  try {
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token: accessToken, expiry: tokenExpiry }));
+  } catch {
+    /* ignore */
+  }
   return accessToken;
 }
 
@@ -102,13 +123,19 @@ export function signOut(): void {
   const t = accessToken;
   accessToken = null;
   tokenExpiry = 0;
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
   if (t) window.google?.accounts.oauth2.revoke(t);
 }
 
-/** A valid access token, refreshed silently when possible. Throws if re-consent is needed. */
+/** A valid access token, or throws. NEVER invokes GIS — background sync must be silent, so a
+ *  lapsed token just makes the sync no-op. Interactive (re)auth happens only via signIn(). */
 async function token(): Promise<string> {
   if (isSignedIn()) return accessToken!;
-  return storeToken(await requestToken('')); // '' = silent; errors if the grant lapsed
+  throw new Error('Drive sign-in required');
 }
 
 // ---- Drive REST, scoped to appDataFolder ----
@@ -118,7 +145,14 @@ const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${await token()}`);
-  return fetch(url, { ...init, headers });
+  // Abort a stalled request after 15s so a hung fetch can't wedge the sync guard.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    return await fetch(url, { ...init, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function findFileId(name: string): Promise<string | null> {

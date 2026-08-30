@@ -61,7 +61,7 @@ fun LexiconCard(
                         color = if (word.tier >= 4) c.rust else c.inkMuted,
                     )
                     SectionLabel(
-                        text = "λέξις · TIER ${word.tier} ${word.tierLabel}",
+                        text = "TIER ${word.tier} · ${word.tierLabel.uppercase()}",
                         color = if (word.tier >= 4) c.rust else c.inkMuted,
                     )
                 }

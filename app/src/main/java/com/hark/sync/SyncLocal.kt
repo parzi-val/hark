@@ -31,6 +31,7 @@ class SyncLocal(private val db: HarkDatabase) {
                 source = n.source.name, // SPOKEN | TYPED (matches canonical)
                 pinnedToWidget = n.pinnedToWidget,
                 shelf = n.shelf,
+                archived = n.archived,
                 createdAt = n.createdAt.toEpochMilli(),
                 updatedAt = n.updatedAt.toEpochMilli(),
                 deleted = n.deleted,
@@ -46,6 +47,7 @@ class SyncLocal(private val db: HarkDatabase) {
                 doneAt = t.doneAt?.toEpochMilli(),
                 dueAt = t.dueAt?.toEpochMilli(),
                 dueHint = t.dueHint,
+                deferred = t.deferred,
                 createdAt = t.createdAt.toEpochMilli(),
                 updatedAt = t.updatedAt.toEpochMilli(),
                 deleted = t.deleted,
@@ -54,10 +56,37 @@ class SyncLocal(private val db: HarkDatabase) {
         return Snapshot(SNAPSHOT_VERSION, System.currentTimeMillis(), snapNotes, snapTasks)
     }
 
+    private fun isStarterTask(title: String): Boolean {
+        val t = title.trim().lowercase()
+        return t.startsWith("tap talk or hold space") ||
+                t.startsWith("configure your groq") ||
+                t.startsWith("set your groq") ||
+                t.startsWith("add the hark") ||
+                t.startsWith("tap talk and speak")
+    }
+
+    /** Purge local starter items if remote snapshot already has user notes. */
+    suspend fun purgeStarterIfRemotePresent(remoteSnap: Snapshot) {
+        val remoteUids = remoteSnap.notes.map { it.uid }.toSet()
+        for (n in noteDao.getAll()) {
+            val titleLower = n.title.trim().lowercase()
+            if ((titleLower == "welcome to hark" || titleLower == "welcome to hark.") && n.remoteId !in remoteUids) {
+                noteDao.delete(n.id, Instant.now())
+                taskDao.deleteForNote(n.id, Instant.now())
+            }
+        }
+        for (t in taskDao.getAll()) {
+            if (isStarterTask(t.title)) {
+                taskDao.delete(t.id, Instant.now())
+            }
+        }
+    }
+
     /** Write a merged snapshot back to Room. Update in place only when the snapshot is
      *  strictly newer (so a concurrent local edit is never clobbered); insert unseen uids;
      *  skip brand-new tombstones (nothing to hide locally). */
-    suspend fun apply(snap: Snapshot) = db.withTransaction {
+    suspend fun apply(snap: Snapshot): Boolean = db.withTransaction {
+        var changed = false
         for (s in snap.notes) {
             val local = noteDao.getByRemoteId(s.uid)
             val src = if (s.source == "SPOKEN") Source.SPOKEN else Source.TYPED
@@ -71,11 +100,13 @@ class SyncLocal(private val db: HarkDatabase) {
                             source = src,
                             pinnedToWidget = s.pinnedToWidget,
                             shelf = s.shelf,
+                            archived = s.archived,
                             createdAt = Instant.ofEpochMilli(s.createdAt),
                             updatedAt = Instant.ofEpochMilli(s.updatedAt),
                             deleted = s.deleted,
                         ),
                     )
+                    changed = true
                 }
             } else if (!s.deleted) {
                 noteDao.insert(
@@ -86,12 +117,14 @@ class SyncLocal(private val db: HarkDatabase) {
                         source = src,
                         pinnedToWidget = s.pinnedToWidget,
                         shelf = s.shelf,
+                        archived = s.archived,
                         createdAt = Instant.ofEpochMilli(s.createdAt),
                         updatedAt = Instant.ofEpochMilli(s.updatedAt),
                         remoteId = s.uid,
                         deleted = s.deleted,
                     ),
                 )
+                changed = true
             }
         }
 
@@ -107,12 +140,14 @@ class SyncLocal(private val db: HarkDatabase) {
                             doneAt = s.doneAt?.let(Instant::ofEpochMilli),
                             dueAt = s.dueAt?.let(Instant::ofEpochMilli),
                             dueHint = s.dueHint,
+                            deferred = s.deferred,
                             sourceNoteId = parentLocalId,
                             createdAt = Instant.ofEpochMilli(s.createdAt),
                             updatedAt = Instant.ofEpochMilli(s.updatedAt),
                             deleted = s.deleted,
                         ),
                     )
+                    changed = true
                 }
             } else if (!s.deleted) {
                 taskDao.insert(
@@ -122,6 +157,7 @@ class SyncLocal(private val db: HarkDatabase) {
                         doneAt = s.doneAt?.let(Instant::ofEpochMilli),
                         dueAt = s.dueAt?.let(Instant::ofEpochMilli),
                         dueHint = s.dueHint,
+                        deferred = s.deferred,
                         sourceNoteId = parentLocalId,
                         createdAt = Instant.ofEpochMilli(s.createdAt),
                         updatedAt = Instant.ofEpochMilli(s.updatedAt),
@@ -129,8 +165,10 @@ class SyncLocal(private val db: HarkDatabase) {
                         deleted = s.deleted,
                     ),
                 )
+                changed = true
             }
         }
+        changed
     }
 
     /** Give any pre-sync rows (remoteId == null) a stable uid. One-time, on startup. */

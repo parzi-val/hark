@@ -9,6 +9,7 @@ export interface NoteEntity {
   source: 'VOICE' | 'TYPED';
   pinnedToWidget: boolean;
   shelf?: boolean; // long-form note (lives on the Shelf, not the Stream)
+  archived?: boolean; // ponytail: filed away when all tasks complete or manually
   createdAt: number;
   updatedAt: number;
   deleted: boolean;
@@ -22,6 +23,7 @@ export interface TaskEntity {
   doneAt?: number | null;
   dueAt?: number | null;
   dueHint?: string | null;
+  deferred?: boolean; // ponytail: set-aside; only meaningful when !done
   sourceNoteId?: number | null;
   createdAt: number;
   updatedAt: number;
@@ -37,8 +39,10 @@ export interface SettingsEntity {
   apiKey: string;
   baseUrl: string;
   model: string;
+  userName?: string;
   themeMode: 'SYSTEM' | 'LIGHT' | 'DARK';
   viewMode: 'STREAM' | 'GRID';
+  hasCompletedOnboarding?: boolean;
 }
 
 export class HarkDatabase extends Dexie {
@@ -125,7 +129,7 @@ export async function seedStarterIfEmpty() {
       apiKey: '',
       baseUrl: DEFAULT_BASE_URL,
       model: DEFAULT_MODEL,
-      themeMode: 'SYSTEM',
+      themeMode: 'LIGHT',
       viewMode: 'STREAM',
     });
   }

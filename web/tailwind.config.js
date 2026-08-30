@@ -20,9 +20,9 @@ export default {
       },
       fontFamily: {
         serif: ['"Libre Baskerville"', 'Georgia', 'serif'],
-        mono: ['"Syne Mono"', 'monospace'],
+        mono: ['"Quicksand"', 'sans-serif'],
       },
-      // Type scale ported 1:1 from the Android HarkType object (px == sp).
+      // Type scale ported for Quicksand and Baskerville
       fontSize: {
         display: ['54px', { lineHeight: '54px' }],
         title: ['30px', { lineHeight: '34px' }],
@@ -31,11 +31,11 @@ export default {
         body: ['17px', { lineHeight: '26px' }],
         'body-lg': ['18px', { lineHeight: '30px' }],
         secondary: ['14.5px', { lineHeight: '22px' }],
-        label: ['11.5px', { lineHeight: '1', letterSpacing: '0.16em' }],
-        meta: ['11px', { lineHeight: '1', letterSpacing: '0.16em' }],
+        label: ['12px', { lineHeight: '1', letterSpacing: '0.02em' }],
+        meta: ['11.5px', { lineHeight: '1', letterSpacing: '0.02em' }],
       },
       letterSpacing: {
-        mono: '0.16em',
+        mono: '0.02em',
       },
       animation: {
         'slide-in-right': 'slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',

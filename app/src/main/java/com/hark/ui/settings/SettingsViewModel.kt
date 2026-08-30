@@ -33,4 +33,8 @@ class SettingsViewModel(private val store: SettingsStore) : ViewModel() {
     fun setShowWordOfTheDay(show: Boolean) {
         store.setShowWordOfTheDay(show)
     }
+
+    fun setUserName(name: String) {
+        store.setUserName(name)
+    }
 }

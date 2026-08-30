@@ -39,6 +39,8 @@ class AppContainer(context: Context) {
         },
     )
 
+    val syncManager = SyncManager(appContext, database, settingsStore)
+
     val repository = HarkRepository(
         noteDao = database.noteDao(),
         taskDao = database.taskDao(),
@@ -48,6 +50,8 @@ class AppContainer(context: Context) {
             } catch (_: Exception) {
                 // Ignore if no widget active on launcher
             }
+            // ponytail: debounced auto-sync after any database write
+            syncManager.scheduleSync(1000)
         },
         onTaskScheduled = { taskId, title, dueAt ->
             com.hark.notifications.ReminderScheduler.schedule(appContext, taskId, title, dueAt)
@@ -66,8 +70,6 @@ class AppContainer(context: Context) {
     val recallService = RecallService(openAiClient)
 
     val lexiconRepository = com.hark.data.repo.LexiconRepository(appContext)
-
-    val syncManager = SyncManager(appContext, database, settingsStore)
 
     init {
         CoroutineScope(Dispatchers.IO).launch {

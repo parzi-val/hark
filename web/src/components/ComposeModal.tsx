@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { db, SettingsEntity } from '../db/db';
-import { processCapture } from '../ai/groq';
-import { recentNoteRefs, applyAction } from '../db/actions';
+import { SettingsEntity, db } from '../db/db';
+import { shapeNote } from '../ai/groq';
+import { scheduleSync } from '../sync/sync';
 import { X, Sparkles } from 'lucide-react';
 
 interface ComposeModalProps {
   settings: SettingsEntity;
   onClose: () => void;
-  onSaved: (id: number) => void;
+  onSaved: (noteId?: number) => void;
 }
 
 export const ComposeModal: React.FC<ComposeModalProps> = ({
@@ -19,8 +19,8 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [dueHint, setDueHint] = useState('');
-  const [isTidying, setIsTidying] = useState(false);
   const [extractTasks, setExtractTasks] = useState(true);
+  const [isTidying, setIsTidying] = useState(false);
 
   const handleSavePlainNote = async () => {
     if (!title.trim() && !body.trim()) return;
@@ -30,37 +30,58 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
       body: body.trim(),
       source: 'TYPED',
       pinnedToWidget: false,
+      shelf: false,
       createdAt: now,
       updatedAt: now,
       deleted: false,
     });
+    scheduleSync(500);
     onSaved(noteId);
   };
 
   const handleTidyAndSave = async () => {
-    const rawText = `${title}\n\n${body}`.trim();
-    if (!rawText) return;
-
-    if (!settings.apiKey) {
-      await handleSavePlainNote();
-      return;
-    }
-
+    if (!title.trim() && !body.trim()) return;
     setIsTidying(true);
+
     try {
-      const notes = await recentNoteRefs();
-      const action = await processCapture({
-        transcript: rawText,
+      const result = await shapeNote({
+        title,
+        body,
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
         extractTasks,
-        notes,
       });
-      const noteId = await applyAction(action, rawText, 'TYPED');
+
+      const now = Date.now();
+      const noteId = await db.notes.add({
+        title: result.title || 'Untitled note',
+        body: result.body,
+        source: 'TYPED',
+        pinnedToWidget: false,
+        shelf: false,
+        createdAt: now,
+        updatedAt: now,
+        deleted: false,
+      });
+
+      if (result.tasks.length > 0) {
+        await db.tasks.bulkAdd(
+          result.tasks.map((t: { title: string; dueHint?: string | null }) => ({
+            title: t.title,
+            done: false,
+            dueHint: t.dueHint ?? null,
+            sourceNoteId: noteId,
+            createdAt: now,
+            updatedAt: now,
+            deleted: false,
+          }))
+        );
+      }
+
+      scheduleSync(0);
       onSaved(noteId);
-    } catch (err) {
-      console.error('Tidy failed, saving raw note:', err);
+    } catch {
       await handleSavePlainNote();
     } finally {
       setIsTidying(false);
@@ -74,11 +95,11 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
       title: title.trim(),
       done: false,
       dueHint: dueHint.trim() || null,
-      sourceNoteId: null,
       createdAt: now,
       updatedAt: now,
       deleted: false,
     });
+    scheduleSync(500);
     onSaved(taskId);
   };
 
@@ -90,19 +111,19 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
           <div className="flex gap-4 font-mono text-label">
             <button
               onClick={() => setMode('NOTE')}
-              className={`pb-1 border-b transition-colors ${
-                mode === 'NOTE' ? 'border-ink text-ink' : 'border-transparent text-ink-faint'
+              className={`pb-1 border-b transition-colors font-medium ${
+                mode === 'NOTE' ? 'border-ink text-ink font-semibold' : 'border-transparent text-ink-faint'
               }`}
             >
-              NOTE
+              Note
             </button>
             <button
               onClick={() => setMode('TASK')}
-              className={`pb-1 border-b transition-colors ${
-                mode === 'TASK' ? 'border-ink text-ink' : 'border-transparent text-ink-faint'
+              className={`pb-1 border-b transition-colors font-medium ${
+                mode === 'TASK' ? 'border-ink text-ink font-semibold' : 'border-transparent text-ink-faint'
               }`}
             >
-              CHECKLIST ITEM
+              Checklist item
             </button>
           </div>
 
@@ -134,35 +155,35 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
             <button
               type="button"
               onClick={() => setExtractTasks((v) => !v)}
-              className="font-mono text-meta uppercase text-ink-muted self-start"
+              className="font-mono text-meta text-ink-muted self-start font-medium"
             >
-              Extract tasks: <span className={extractTasks ? 'text-rust' : 'text-ink-faint'}>{extractTasks ? 'ON' : 'OFF'}</span>
+              Extract tasks: <span className={extractTasks ? 'text-rust font-semibold' : 'text-ink-faint'}>{extractTasks ? 'On' : 'Off'}</span>
             </button>
 
             <div className="pt-1 flex items-center gap-3">
               <button
                 onClick={handleSavePlainNote}
                 disabled={!title.trim() && !body.trim()}
-                className="flex-1 py-3 rounded-xl border border-ink-hairline bg-paper-card text-ink font-mono text-label hover:opacity-90 disabled:opacity-40"
+                className="flex-1 py-3 rounded-xl border border-ink-hairline bg-paper-card text-ink font-mono text-label font-medium hover:opacity-90 disabled:opacity-40"
               >
-                SAVE
+                Save
               </button>
 
               <button
                 onClick={handleTidyAndSave}
                 disabled={(!title.trim() && !body.trim()) || isTidying}
-                className="flex-1 py-3 rounded-xl bg-ink text-paper font-mono text-label hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 rounded-xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5 text-rust" />
-                <span>{isTidying ? 'TIDYING…' : 'TIDY & SAVE'}</span>
+                <span>{isTidying ? 'Tidying…' : 'Tidy & save'}</span>
               </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="font-mono text-label text-ink-faint uppercase">
-                TASK DESCRIPTION
+              <label className="font-mono text-label text-ink-faint">
+                Task description
               </label>
               <input
                 type="text"
@@ -174,8 +195,8 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <label className="font-mono text-label text-ink-faint uppercase">
-                DUE / REMINDER HINT (OPTIONAL)
+              <label className="font-mono text-label text-ink-faint">
+                Due / reminder hint (optional)
               </label>
               <input
                 type="text"
@@ -190,9 +211,9 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
               <button
                 onClick={handleSaveTask}
                 disabled={!title.trim()}
-                className="w-full py-3 rounded-xl bg-ink text-paper font-mono text-label hover:opacity-90 disabled:opacity-40"
+                className="w-full py-3 rounded-xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 disabled:opacity-40"
               >
-                CREATE CHECKLIST ITEM
+                Create checklist item
               </button>
             </div>
           </div>

@@ -33,7 +33,7 @@ class HarkRepository(
     // Stream excludes Shelf notes — Shelf has its own reading list.
     val stream: Flow<List<StreamItem>> =
         combine(noteDao.observeAll(), taskDao.observeAll()) { notes, tasks ->
-            val streamNotes = notes.filter { !it.shelf }
+            val streamNotes = notes.filter { !it.shelf && !it.archived }
             val childrenByNote = tasks.filter { it.sourceNoteId != null }.groupBy { it.sourceNoteId }
             buildList {
                 streamNotes.forEach { note ->
@@ -45,12 +45,19 @@ class HarkRepository(
 
     val openCount: Flow<Int> = taskDao.observeOpenCount()
 
-    /** Raw streams for screens that need to slice by date/state themselves (e.g. Today). */
+    /** Raw streams for screens that need to slice by date/state themselves (e.g. Today).
+     *  Archived notes are hidden everywhere except the (web) Archive view. */
     val tasks: Flow<List<TaskEntity>> = taskDao.observeAll()
-    val notes: Flow<List<NoteEntity>> = noteDao.observeAll()
+    val notes: Flow<List<NoteEntity>> = noteDao.observeAll().map { list ->
+        list.filterNot { it.archived }
+    }
 
     val shelfNotes: Flow<List<NoteEntity>> = noteDao.observeAll().map { list ->
-        list.filter { it.shelf }
+        list.filter { it.shelf && !it.archived }
+    }
+
+    val archivedNotes: Flow<List<NoteEntity>> = noteDao.observeAll().map { list ->
+        list.filter { it.archived }
     }
 
     suspend fun searchNotes(query: String): List<NoteEntity> =
@@ -65,6 +72,38 @@ class HarkRepository(
         val now = Instant.now()
         taskDao.setDone(task.id, done, doneAt = if (done) now else null, updatedAt = now)
         if (done) onTaskCancelled(task.id)
+        reconcileNoteArchive(task.sourceNoteId)
+        onChanged()
+    }
+
+    /** Set a task aside (or bring it back). Deferring forces it open and drops it off the open
+     *  count and Today; it stays visible (grayed) in the Stream. */
+    suspend fun setTaskDeferred(task: TaskEntity, deferred: Boolean) {
+        val now = Instant.now()
+        taskDao.setDeferred(task.id, deferred, now)
+        if (deferred) onTaskCancelled(task.id)
+        reconcileNoteArchive(task.sourceNoteId)
+        onChanged()
+    }
+
+    /** Auto-archive a note once every one of its tasks is complete. Monotonic — only ever sets
+     *  archived = true; un-archiving is always explicit (note drawer / web Archive view), so it
+     *  never fights a manual archive. */
+    suspend fun reconcileNoteArchive(noteId: Long?) {
+        if (noteId == null) return
+        val tasks = taskDao.getForNote(noteId) // non-deleted (query filters deleted = 0)
+        val allDone = tasks.isNotEmpty() && tasks.all { it.done }
+        val note = noteDao.getById(noteId) ?: return
+        if (allDone && !note.archived) noteDao.setArchived(noteId, true, Instant.now())
+    }
+
+    suspend fun archiveNote(id: Long) {
+        noteDao.setArchived(id, true, Instant.now())
+        onChanged()
+    }
+
+    suspend fun unarchiveNote(id: Long) {
+        noteDao.setArchived(id, false, Instant.now())
         onChanged()
     }
 

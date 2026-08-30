@@ -1,5 +1,50 @@
-import { db } from './db';
+import { db, TaskEntity } from './db';
 import { HarkAction, NoteRef, FocusedNote } from '../ai/groq';
+import { scheduleSync } from '../sync/sync';
+
+export type TaskStatus = 'OPEN' | 'DEFERRED' | 'COMPLETED';
+
+// ponytail: single source of truth for task kanban/filter state
+export const taskStatus = (t: TaskEntity): TaskStatus =>
+  t.done ? 'COMPLETED' : t.deferred ? 'DEFERRED' : 'OPEN';
+
+export async function setTaskStatus(taskId: number, status: TaskStatus): Promise<void> {
+  const now = Date.now();
+  const patch =
+    status === 'COMPLETED'
+      ? { done: true, deferred: false, doneAt: now }
+      : status === 'DEFERRED'
+      ? { done: false, deferred: true, doneAt: null }
+      : { done: false, deferred: false, doneAt: null };
+
+  await db.tasks.update(taskId, { ...patch, updatedAt: now });
+
+  const t = await db.tasks.get(taskId);
+  if (t?.sourceNoteId != null) {
+    await reconcileNoteArchive(t.sourceNoteId);
+  }
+  scheduleSync(500);
+}
+
+// Auto-archive is monotonic: it only ever SETS archived=true when all tasks are done.
+async function reconcileNoteArchive(noteId: number): Promise<void> {
+  const tasks = (await db.tasks.where('sourceNoteId').equals(noteId).toArray()).filter((t) => !t.deleted);
+  const allDone = tasks.length >= 1 && tasks.every((t) => t.done);
+  const note = await db.notes.get(noteId);
+  if (note && allDone && !note.archived) {
+    await db.notes.update(noteId, { archived: true, updatedAt: Date.now() });
+  }
+}
+
+export async function archiveNote(noteId: number): Promise<void> {
+  await db.notes.update(noteId, { archived: true, updatedAt: Date.now() });
+  scheduleSync(500);
+}
+
+export async function unarchiveNote(noteId: number): Promise<void> {
+  await db.notes.update(noteId, { archived: false, updatedAt: Date.now() });
+  scheduleSync(500);
+}
 
 // A voice capture longer than this auto-lands on the Shelf instead of the Stream.
 export const SHELF_THRESHOLD = 400;
@@ -91,13 +136,14 @@ export async function applyAction(
     deleted: false,
   });
   await addTasks(id);
+  scheduleSync(0);
   return id;
 }
 
 /** Create a blank Shelf note and return its id (for the full-screen writer). */
 export async function newShelfNote(): Promise<number> {
   const now = Date.now();
-  return db.notes.add({
+  const id = await db.notes.add({
     title: '',
     body: '',
     source: 'TYPED',
@@ -107,11 +153,14 @@ export async function newShelfNote(): Promise<number> {
     updatedAt: now,
     deleted: false,
   });
+  scheduleSync(500);
+  return id;
 }
 
 /** Move a note between Stream and Shelf. Shelving clears any widget pin (pinning a shelf note is moot). */
 export async function setShelf(id: number, shelf: boolean): Promise<void> {
   await db.notes.update(id, { shelf, ...(shelf ? { pinnedToWidget: false } : {}), updatedAt: Date.now() });
+  scheduleSync(500);
 }
 
 function trail(existing: string | null | undefined, transcript: string, source: 'VOICE' | 'TYPED'): string | null {

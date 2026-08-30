@@ -42,10 +42,10 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onWrite();
             }}
-            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5"
+            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>WRITE</span>
+            <span>Write</span>
           </button>
 
           {/* Shelf note (full-screen long-form) */}
@@ -54,10 +54,10 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onShelf();
             }}
-            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold tracking-wider hover:opacity-90 transition-opacity flex items-center gap-1.5"
+            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>SHELF</span>
+            <span>Shelf</span>
           </button>
 
           {/* Talk */}
@@ -66,7 +66,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onTalk();
             }}
-            className="px-5 h-11 rounded-full bg-ink text-paper font-mono text-xs font-semibold tracking-wider hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="px-5 h-11 rounded-full bg-ink text-paper font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             {/* 3 nib bars animation */}
             <span className="flex items-center gap-0.5">
@@ -74,7 +74,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               <span className="w-0.5 h-2 bg-rust rounded-full animate-pulse delay-75" />
               <span className="w-0.5 h-2.5 bg-rust rounded-full animate-pulse delay-150" />
             </span>
-            <span>TALK</span>
+            <span>Talk</span>
           </button>
         </div>
       )}

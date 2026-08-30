@@ -9,7 +9,7 @@
   --color-ink: #1C1B19;
   --color-ink-muted: rgba(28, 27, 25, 0.55);
   --color-ink-faint: rgba(28, 27, 25, 0.40);
-  --color-ink-hairline: rgba(28, 27, 25, 0.09);
+  --color-ink-hairline: rgba(28, 27, 25, 0.16);
   --color-checkbox-border: rgba(28, 27, 25, 0.42);
   --color-rust: #8A4B34;
   --color-rust-muted: rgba(138, 75, 52, 0.14);
@@ -93,7 +93,7 @@ body {
   font-style: italic;
 }
 .hark-md code {
-  font-family: 'Syne Mono', monospace;
+  font-family: 'Quicksand', sans-serif;
   font-size: 0.88em;
   background: var(--color-paper-card);
   border: 1px solid var(--color-ink-hairline);
@@ -126,4 +126,19 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-ink-faint);
+}
+
+/* Hilbert-curve loader (HilbertLoader.tsx) — matches the Android HilbertSpinner: draw the curve
+   in, then back out, 1300ms each way with the same cubic-bezier ease. */
+@keyframes hilbert-draw {
+  from {
+    stroke-dashoffset: 342;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.hilbert-trace {
+  stroke-dasharray: 342;
+  animation: hilbert-draw 1300ms cubic-bezier(0.35, 0, 0.25, 1) infinite alternate;
 }

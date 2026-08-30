@@ -354,6 +354,7 @@ fun NoteDetailScreen(
                 isShaping = state.isShaping,
                 isShelf = note.shelf,
                 isPinned = note.pinnedToWidget,
+                isArchived = note.archived,
                 hasTalk = onTalkToEdit != null,
                 onTasksClick = {
                     drawerExpanded = false
@@ -378,6 +379,10 @@ fun NoteDetailScreen(
                 onTogglePinClick = {
                     drawerExpanded = false
                     vm.togglePin()
+                },
+                onArchiveClick = {
+                    drawerExpanded = false
+                    if (note.archived) vm.unarchiveNote(onClose) else vm.archiveNote(title, body, onClose)
                 },
                 onDeleteClick = {
                     drawerExpanded = false
@@ -435,12 +440,14 @@ private fun VerticalSideDrawer(
     isShaping: Boolean,
     isShelf: Boolean,
     isPinned: Boolean,
+    isArchived: Boolean,
     hasTalk: Boolean,
     onTasksClick: () -> Unit,
     onTalkClick: () -> Unit,
     onShapeClick: () -> Unit,
     onToggleShelfClick: () -> Unit,
     onTogglePinClick: () -> Unit,
+    onArchiveClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     val c = Hark.colors
@@ -539,7 +546,15 @@ private fun VerticalSideDrawer(
 
                 HorizontalDivider(color = c.inkHairline)
 
-                // 6. DELETE NOTE
+                // 6. ARCHIVE / UNARCHIVE NOTE
+                DrawerOptionItem(
+                    title = if (isArchived) "Unarchive Note" else "Archive Note",
+                    badge = if (isArchived) "UNARCHIVE" else "ARCHIVE",
+                    subtext = if (isArchived) "Bring it back to the Stream" else "File it away — hides from Stream & Today",
+                    onClick = onArchiveClick,
+                )
+
+                // 7. DELETE NOTE
                 DrawerOptionItem(
                     title = "Delete Note",
                     badge = "DELETE",

@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { TaskEntity, SettingsEntity, db } from '../db/db';
-import { ArrowLeft, Trash2, Star, Plus, Mic, Sparkles, Library, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Trash2, Star, Plus, Mic, Sparkles, Library, ChevronDown, Archive } from 'lucide-react';
 import { Markdown } from './Markdown';
 import { shapeNote } from '../ai/groq';
 import { setShelf } from '../db/actions';
+import { scheduleSync } from '../sync/sync';
 
 interface NoteDetailProps {
   noteId: number;
   settings: SettingsEntity;
   onClose: () => void;
   onDeleteNote: (noteId: number) => void;
+  onArchiveNote?: (noteId: number) => void;
   onTalkToEdit?: () => void;
 }
 
@@ -19,6 +21,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
   settings,
   onClose,
   onDeleteNote,
+  onArchiveNote,
   onTalkToEdit,
 }) => {
   // Reactive — reflects external changes (voice append/edit) immediately.
@@ -66,12 +69,14 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
         body: b,
         updatedAt: Date.now(),
       });
+      scheduleSync(1000);
     }, 300);
   };
 
   const handleTogglePin = async () => {
     if (!note) return;
     await db.notes.update(noteId, { pinnedToWidget: !note.pinnedToWidget, updatedAt: Date.now() });
+    scheduleSync(500);
   };
 
   // Reformat the raw prose into structured Markdown, on demand.
@@ -91,17 +96,21 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
     });
     await db.notes.update(noteId, { title: r.title, body: r.body, updatedAt: Date.now() });
     setShaping(false);
+    scheduleSync(0);
   };
 
   const handleMoveShelf = async () => {
     if (!note) return;
     await setShelf(noteId, !note.shelf);
+    scheduleSync(500);
   };
 
   // Backing out of a still-blank note discards it (e.g. a shelf note you opened but never wrote in).
   const closeNote = async () => {
     if (!title.trim() && !body.trim() && tasks.length === 0) {
-      await db.notes.delete(noteId);
+      // ponytail: soft-delete tombstone prevents Drive resurrecting discarded blank notes
+      await db.notes.update(noteId, { deleted: true, updatedAt: Date.now() });
+      scheduleSync(0);
     }
     onClose();
   };
@@ -112,6 +121,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       doneAt: !currentDone ? Date.now() : null,
       updatedAt: Date.now(),
     });
+    scheduleSync(500);
   };
 
   const handleAddTask = async (e: React.FormEvent) => {
@@ -127,9 +137,10 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
       deleted: false,
     });
     setNewTaskTitle('');
+    scheduleSync(500);
   };
 
-  if (!note) return null;
+  if (!note || note.deleted) return null;
 
   const dateStr = new Date(note.createdAt).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -148,64 +159,94 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
     return body;
   })();
 
+  const handleDelete = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    onClose();
+    onDeleteNote(noteId);
+  };
+
+  const handleArchive = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    onClose();
+    onArchiveNote?.(noteId);
+  };
+
   return (
     <div className="h-full flex flex-col bg-paper">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-ink-hairline">
+      {/* Top Bar with Clean Icon-Only Action Buttons */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-ink-hairline bg-paper">
         <button
           onClick={closeNote}
-          className="flex items-center gap-2 text-ink-muted hover:text-ink font-mono text-label"
+          className="p-2 rounded-full text-ink-muted hover:text-ink hover:bg-ink/[0.05] transition-colors"
+          title="Back (Esc)"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>BACK</span>
         </button>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-1 text-ink-muted">
           {onTalkToEdit && (
             <button
               onClick={onTalkToEdit}
-              className="flex items-center gap-1.5 text-ink-muted hover:text-ink font-mono text-label"
+              className="p-2 rounded-full hover:text-ink hover:bg-ink/[0.05] transition-colors"
+              title="Talk to edit note"
             >
-              <Mic className="w-3.5 h-3.5" />
-              <span>TALK</span>
+              <Mic className="w-4 h-4" />
             </button>
           )}
+
           {note.shelf && (
             <button
               onClick={handleShape}
               disabled={shaping || !body.trim()}
-              className="flex items-center gap-1.5 text-ink-muted hover:text-ink font-mono text-label disabled:opacity-40"
+              className="p-2 rounded-full hover:text-rust hover:bg-rust-muted/50 transition-colors disabled:opacity-40"
+              title="Shape Markdown"
             >
-              <Sparkles className="w-3.5 h-3.5 text-rust" />
-              <span>{shaping ? 'SHAPING…' : 'SHAPE'}</span>
-            </button>
-          )}
-          <button
-            onClick={handleMoveShelf}
-            className="flex items-center gap-1.5 text-ink-muted hover:text-ink font-mono text-label"
-            title={note.shelf ? 'Move to Stream' : 'Move to Shelf'}
-          >
-            <Library className="w-3.5 h-3.5" />
-            <span>{note.shelf ? '→ STREAM' : '→ SHELF'}</span>
-          </button>
-          {!note.shelf && (
-            <button
-              onClick={handleTogglePin}
-              className={`flex items-center gap-1.5 font-mono text-label ${
-                note.pinnedToWidget ? 'text-rust' : 'text-ink-muted hover:text-ink'
-              }`}
-            >
-              <Star className={`w-3.5 h-3.5 ${note.pinnedToWidget ? 'fill-rust' : ''}`} />
-              <span>{note.pinnedToWidget ? 'PINNED' : 'PIN'}</span>
+              <Sparkles className="w-4 h-4 text-rust" />
             </button>
           )}
 
           <button
-            onClick={() => onDeleteNote(noteId)}
-            className="text-rust hover:opacity-80 font-mono text-label flex items-center gap-1"
+            onClick={handleMoveShelf}
+            className="p-2 rounded-full hover:text-ink hover:bg-ink/[0.05] transition-colors"
+            title={note.shelf ? 'Move to Stream' : 'Move to Shelf'}
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>DELETE</span>
+            <Library className="w-4 h-4" />
+          </button>
+
+          {!note.shelf && (
+            <button
+              onClick={handleTogglePin}
+              className={`p-2 rounded-full hover:bg-ink/[0.05] transition-colors ${
+                note.pinnedToWidget ? 'text-rust' : 'hover:text-ink'
+              }`}
+              title={note.pinnedToWidget ? 'Unpin from Widget' : 'Pin to Widget'}
+            >
+              <Star className={`w-4 h-4 ${note.pinnedToWidget ? 'fill-rust' : ''}`} />
+            </button>
+          )}
+
+          {onArchiveNote && (
+            <button
+              onClick={handleArchive}
+              className="p-2 rounded-full hover:text-ink hover:bg-ink/[0.05] transition-colors"
+              title="Archive note"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            onClick={handleDelete}
+            className="p-2 rounded-full text-rust/80 hover:text-rust hover:bg-rust-muted transition-colors"
+            title="Delete note"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -223,7 +264,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           className="w-full bg-transparent font-serif text-note-title text-ink placeholder:text-ink-faint focus:outline-none"
         />
 
-        <div className="font-mono text-meta text-ink-faint uppercase">
+        <div className="font-mono text-meta text-ink-faint">
           {dateStr}
         </div>
 
@@ -259,8 +300,8 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
 
         {/* Tasks in this note */}
         <div className="pt-4 space-y-3">
-          <div className="font-mono text-label text-ink-faint uppercase">
-            TASKS IN THIS NOTE ({tasks.length})
+          <div className="font-mono text-label text-ink-faint">
+            Tasks in this note ({tasks.length})
           </div>
 
           <div className="space-y-2">
@@ -283,7 +324,7 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
                   {task.title}
                 </span>
                 {task.dueHint && (
-                  <span className="font-mono text-meta text-rust uppercase">
+                  <span className="font-mono text-meta text-rust font-medium">
                     {task.dueHint}
                   </span>
                 )}
@@ -303,10 +344,10 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
             <button
               type="submit"
               disabled={!newTaskTitle.trim()}
-              className="px-4 py-2 rounded-xl bg-ink text-paper font-mono text-label disabled:opacity-40 hover:opacity-90 flex items-center gap-1"
+              className="px-4 py-2 rounded-xl bg-ink text-paper font-mono text-label font-medium disabled:opacity-40 hover:opacity-90 flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>ADD</span>
+              <span>Add</span>
             </button>
           </form>
         </div>
@@ -316,9 +357,9 @@ export const NoteDetail: React.FC<NoteDetailProps> = ({
           <div className="pt-6 border-t border-ink-hairline space-y-2">
             <button
               onClick={() => setHeardExpanded((v) => !v)}
-              className="flex items-center gap-1.5 font-mono text-label text-ink-faint uppercase hover:text-ink-muted"
+              className="flex items-center gap-1.5 font-mono text-label text-ink-faint hover:text-ink-muted"
             >
-              <span>HEARD AS</span>
+              <span>Heard as</span>
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${heardExpanded ? 'rotate-180' : ''}`} />
             </button>
             {heardExpanded && (

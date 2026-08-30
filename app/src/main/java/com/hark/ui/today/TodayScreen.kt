@@ -29,6 +29,7 @@ import com.hark.ui.components.MetaLabel
 import com.hark.ui.components.NoteDash
 import com.hark.ui.components.SectionLabel
 import com.hark.ui.components.TaskCheck
+import com.hark.ui.components.TaskTapMenu
 import com.hark.ui.harkViewModel
 import com.hark.ui.theme.Hark
 import com.hark.ui.theme.HarkType
@@ -50,20 +51,25 @@ fun TodayScreen(
     val today = LocalDate.now(ZoneId.systemDefault())
 
     LazyColumn(Modifier.fillMaxSize().background(c.paper)) {
-        // Header with Date and Lexis Trigger
+        // Header: greeting on its own line, then the big date with the λέξις archive
+        // baseline-aligned on the right (keeps the greeting from wrapping and stops the
+        // archive floating beside the number).
         item {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 26.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(start = 26.dp, end = 20.dp, top = 24.dp, bottom = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(start = 26.dp, top = 24.dp, bottom = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                MetaLabel(
+                    "${today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()).uppercase()} · ${state.greeting.uppercase()}",
+                    color = c.inkFaint,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom,
                 ) {
-                    MetaLabel(today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()), color = c.inkFaint)
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("${today.dayOfMonth}", style = HarkType.displayNumber, color = c.ink)
                         Text(
@@ -73,19 +79,20 @@ fun TodayScreen(
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
                     }
-                }
 
-                // Lexis Archive (λέξις) button
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onOpenLexicon() }
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                ) {
-                    Text("λέξις", style = HarkType.label, color = c.rust)
-                    MetaLabel("ARCHIVE", color = c.inkMuted)
+                    // Lexis Archive (λέξις) button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onOpenLexicon() }
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                    ) {
+                        Text("λέξις", style = HarkType.label, color = c.rust, maxLines = 1)
+                        Text("ARCHIVE", style = HarkType.label, color = c.inkMuted, maxLines = 1)
+                    }
                 }
             }
         }
@@ -104,12 +111,12 @@ fun TodayScreen(
 
         if (state.overdue.isNotEmpty()) {
             item { SectionLabel("OVERDUE · ${state.overdue.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 12.dp, bottom = 6.dp), color = c.rust) }
-            items(state.overdue, key = { "o${it.id}" }) { TaskRow(it, onToggle = vm::toggle, overdue = true) }
+            items(state.overdue, key = { "o${it.id}" }) { TaskRow(it, onToggle = vm::toggle, onToggleDeferred = vm::toggleDeferred, overdue = true) }
         }
 
         if (state.dueToday.isNotEmpty()) {
             item { SectionLabel("DUE TODAY · ${state.dueToday.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 6.dp)) }
-            items(state.dueToday, key = { "d${it.id}" }) { TaskRow(it, onToggle = vm::toggle, overdue = false) }
+            items(state.dueToday, key = { "d${it.id}" }) { TaskRow(it, onToggle = vm::toggle, onToggleDeferred = vm::toggleDeferred, overdue = false) }
         }
 
         if (state.writtenToday.isNotEmpty()) {
@@ -131,7 +138,12 @@ fun TodayScreen(
 }
 
 @Composable
-private fun TaskRow(task: TaskEntity, onToggle: (TaskEntity) -> Unit, overdue: Boolean) {
+private fun TaskRow(
+    task: TaskEntity,
+    onToggle: (TaskEntity) -> Unit,
+    onToggleDeferred: (TaskEntity) -> Unit,
+    overdue: Boolean,
+) {
     val c = Hark.colors
     Column {
         HorizontalDivider(color = c.inkHairline)
@@ -141,14 +153,22 @@ private fun TaskRow(task: TaskEntity, onToggle: (TaskEntity) -> Unit, overdue: B
             verticalAlignment = Alignment.Top,
         ) {
             TaskCheck(task.done, onToggle = { onToggle(task) }, modifier = Modifier.padding(top = 3.dp))
-            Column(Modifier.padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(
-                    task.title,
-                    style = HarkType.item,
-                    color = if (task.done) c.inkFaint else c.ink,
-                    textDecoration = if (task.done) TextDecoration.LineThrough else null,
-                )
-                task.dueHint?.let { MetaLabel(it, color = if (overdue) c.rust else c.inkFaint) }
+            // Long-press to set a task aside; it drops off Today and lands (grayed) in the Stream.
+            TaskTapMenu(
+                deferred = task.deferred,
+                onClick = {},
+                onToggleDeferred = { onToggleDeferred(task) },
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(
+                        task.title,
+                        style = HarkType.item,
+                        color = if (task.done) c.inkFaint else c.ink,
+                        textDecoration = if (task.done) TextDecoration.LineThrough else null,
+                    )
+                    task.dueHint?.let { MetaLabel(it, color = if (overdue) c.rust else c.inkFaint) }
+                }
             }
         }
     }

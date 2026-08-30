@@ -6,6 +6,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -15,25 +16,42 @@ private const val DRIVE = "https://www.googleapis.com/drive/v3"
 private const val UPLOAD = "https://www.googleapis.com/upload/drive/v3"
 private val JSON = "application/json".toMediaType()
 
-/** Reads/writes text files in the app's private Drive appDataFolder. [tokenProvider] returns
- *  a fresh OAuth access token (throws if sign-in is required). */
+/**
+ * Reads/writes text files in the app's private Drive appDataFolder. [tokenProvider] returns an
+ * OAuth access token; [onUnauthorized] invalidates a stale one so a 401 can be retried —
+ * GoogleAuthUtil caches tokens and will happily hand back one that has already expired.
+ */
 class DriveClient(
     private val client: OkHttpClient,
     private val tokenProvider: suspend () -> String,
+    private val onUnauthorized: suspend (String) -> Unit = {},
 ) {
-    private suspend fun run(req: Request): okhttp3.Response =
-        withContext(Dispatchers.IO) { client.newCall(req).execute() }
-
-    private suspend fun auth(): String = "Bearer " + tokenProvider()
+    /** Build + run a request with a bearer token; on 401, drop the stale token and retry once. */
+    private suspend fun exec(build: (auth: String) -> Request): Response {
+        val token = tokenProvider()
+        var res = withContext(Dispatchers.IO) { client.newCall(build("Bearer $token")).execute() }
+        if (res.code == 401) {
+            res.close()
+            onUnauthorized(token)
+            val fresh = tokenProvider()
+            res = withContext(Dispatchers.IO) { client.newCall(build("Bearer $fresh")).execute() }
+        }
+        return res
+    }
 
     private suspend fun findFileId(name: String): String? {
         val q = URLEncoder.encode("name='$name'", "UTF-8")
-        val req = Request.Builder()
-            .url("$DRIVE/files?spaces=appDataFolder&q=$q&fields=files(id,name)")
-            .header("Authorization", auth())
-            .build()
-        run(req).use { res ->
-            if (!res.isSuccessful) throw IOException("Drive list failed: ${res.code}")
+        exec { auth ->
+            Request.Builder()
+                .url("$DRIVE/files?spaces=appDataFolder&q=$q&fields=files(id,name)")
+                .header("Authorization", auth)
+                .build()
+        }.use { res ->
+            if (!res.isSuccessful) {
+                val err = res.body?.string()
+                android.util.Log.e("HarkDrive", "Drive list failed (${res.code}): $err")
+                throw IOException("Drive list failed: ${res.code}")
+            }
             val body = res.body?.string() ?: return null
             val files = JSONObject(body).optJSONArray("files") ?: return null
             return if (files.length() > 0) files.getJSONObject(0).getString("id") else null
@@ -43,11 +61,12 @@ class DriveClient(
     /** File text from appDataFolder, or null if it doesn't exist yet. */
     suspend fun read(name: String): String? {
         val id = findFileId(name) ?: return null
-        val req = Request.Builder()
-            .url("$DRIVE/files/$id?alt=media")
-            .header("Authorization", auth())
-            .build()
-        run(req).use { res ->
+        exec { auth ->
+            Request.Builder()
+                .url("$DRIVE/files/$id?alt=media")
+                .header("Authorization", auth)
+                .build()
+        }.use { res ->
             if (!res.isSuccessful) throw IOException("Drive read failed: ${res.code}")
             return res.body?.string()
         }
@@ -57,12 +76,13 @@ class DriveClient(
     suspend fun write(name: String, content: String) {
         val id = findFileId(name)
         if (id != null) {
-            val req = Request.Builder()
-                .url("$UPLOAD/files/$id?uploadType=media")
-                .header("Authorization", auth())
-                .patch(content.toRequestBody(JSON))
-                .build()
-            run(req).use { res -> if (!res.isSuccessful) throw IOException("Drive update failed: ${res.code}") }
+            exec { auth ->
+                Request.Builder()
+                    .url("$UPLOAD/files/$id?uploadType=media")
+                    .header("Authorization", auth)
+                    .patch(content.toRequestBody(JSON))
+                    .build()
+            }.use { res -> if (!res.isSuccessful) throw IOException("Drive update failed: ${res.code}") }
             return
         }
         val boundary = "hark" + System.currentTimeMillis()
@@ -79,11 +99,12 @@ class DriveClient(
             append(content).append("\r\n")
             append("--").append(boundary).append("--")
         }
-        val req = Request.Builder()
-            .url("$UPLOAD/files?uploadType=multipart&fields=id")
-            .header("Authorization", auth())
-            .post(multipart.toRequestBody("multipart/related; boundary=$boundary".toMediaType()))
-            .build()
-        run(req).use { res -> if (!res.isSuccessful) throw IOException("Drive create failed: ${res.code}") }
+        exec { auth ->
+            Request.Builder()
+                .url("$UPLOAD/files?uploadType=multipart&fields=id")
+                .header("Authorization", auth)
+                .post(multipart.toRequestBody("multipart/related; boundary=$boundary".toMediaType()))
+                .build()
+        }.use { res -> if (!res.isSuccessful) throw IOException("Drive create failed: ${res.code}") }
     }
 }

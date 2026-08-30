@@ -60,9 +60,9 @@ export const RecallModal: React.FC<RecallModalProps> = ({
       <div className="bg-paper border border-ink-hairline rounded-3xl p-7 max-w-lg w-full shadow-2xl space-y-6">
         {/* Top Bar */}
         <div className="flex items-center justify-between">
-          <span className="font-mono text-label text-rust uppercase flex items-center gap-1.5">
+          <span className="font-mono text-label text-rust font-semibold flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            HARK RECALL
+            Hark recall
           </span>
           <button
             onClick={onClose}
@@ -87,16 +87,16 @@ export const RecallModal: React.FC<RecallModalProps> = ({
           <button
             type="submit"
             disabled={!query.trim() || isLoading}
-            className="px-5 py-3 rounded-xl bg-ink text-paper font-mono text-label hover:opacity-90 disabled:opacity-40"
+            className="px-5 py-3 rounded-xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 disabled:opacity-40"
           >
-            {isLoading ? 'SEARCHING…' : 'ASK'}
+            {isLoading ? 'Searching…' : 'Ask'}
           </button>
         </form>
 
         {response && (
           <div className="p-5 rounded-2xl bg-paper-card border border-ink-hairline space-y-2">
-            <div className="font-mono text-label text-ink-faint uppercase">
-              ANSWER FROM NOTES
+            <div className="font-mono text-label text-ink-faint">
+              Answer from notes
             </div>
             <p className="font-serif text-body text-ink whitespace-pre-wrap">
               {response}

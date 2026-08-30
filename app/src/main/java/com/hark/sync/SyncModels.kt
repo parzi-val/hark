@@ -22,6 +22,7 @@ data class SyncNote(
     val source: String, // "SPOKEN" | "TYPED"
     val pinnedToWidget: Boolean,
     val shelf: Boolean,
+    val archived: Boolean = false,
     val createdAt: Long,
     override val updatedAt: Long,
     val deleted: Boolean,
@@ -35,6 +36,7 @@ data class SyncTask(
     val doneAt: Long?,
     val dueAt: Long?,
     val dueHint: String?,
+    val deferred: Boolean = false,
     val createdAt: Long,
     override val updatedAt: Long,
     val deleted: Boolean,
@@ -80,6 +82,7 @@ fun Snapshot.toJson(): String {
                 .put("source", n.source)
                 .put("pinnedToWidget", n.pinnedToWidget)
                 .put("shelf", n.shelf)
+                .put("archived", n.archived)
                 .put("createdAt", n.createdAt)
                 .put("updatedAt", n.updatedAt)
                 .put("deleted", n.deleted),
@@ -96,6 +99,7 @@ fun Snapshot.toJson(): String {
                 .put("doneAt", t.doneAt ?: JSONObject.NULL)
                 .put("dueAt", t.dueAt ?: JSONObject.NULL)
                 .put("dueHint", t.dueHint ?: JSONObject.NULL)
+                .put("deferred", t.deferred)
                 .put("createdAt", t.createdAt)
                 .put("updatedAt", t.updatedAt)
                 .put("deleted", t.deleted),
@@ -128,6 +132,7 @@ fun parseSnapshot(text: String?): Snapshot {
                     source = o.optString("source", "TYPED"),
                     pinnedToWidget = o.optBoolean("pinnedToWidget", false),
                     shelf = o.optBoolean("shelf", false),
+                    archived = o.optBoolean("archived", false),
                     createdAt = o.optLong("createdAt", 0),
                     updatedAt = o.optLong("updatedAt", 0),
                     deleted = o.optBoolean("deleted", false),
@@ -147,6 +152,7 @@ fun parseSnapshot(text: String?): Snapshot {
                     doneAt = o.optLongOrNull("doneAt"),
                     dueAt = o.optLongOrNull("dueAt"),
                     dueHint = o.optStringOrNull("dueHint"),
+                    deferred = o.optBoolean("deferred", false),
                     createdAt = o.optLong("createdAt", 0),
                     updatedAt = o.optLong("updatedAt", 0),
                     deleted = o.optBoolean("deleted", false),

@@ -27,11 +27,15 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.hark.ui.components.HilbertSpinner
 import com.hark.ui.compose.ComposeScreen
 import com.hark.ui.lexicon.LexiconScreen
 import com.hark.ui.lexicon.LexiconWordScreen
 import com.hark.ui.note.NoteDetailScreen
+import com.hark.ui.onboarding.OnboardingScreen
 import com.hark.ui.recall.RecallScreen
 import com.hark.ui.settings.SettingsScreen
 import com.hark.ui.shelf.ShelfScreen
@@ -46,6 +50,7 @@ import kotlinx.coroutines.launch
 
 sealed interface Screen {
     data object Splash : Screen
+    data object Onboarding : Screen
 
     /** Primary destinations that share the bottom nav. */
     sealed interface Tab : Screen
@@ -74,6 +79,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val app = applicationContext as HarkApp
             val settings by app.container.settingsStore.settings.collectAsStateWithLifecycle()
+            val initialSyncing by app.container.syncManager.initialSyncing.collectAsStateWithLifecycle()
             val isDark = when (settings.themeMode) {
                 com.hark.ai.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
                 com.hark.ai.ThemeMode.LIGHT -> false
@@ -82,20 +88,44 @@ class MainActivity : ComponentActivity() {
 
             val currentScreen = backStack.lastOrNull() ?: Screen.Stream
 
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                var pollingJob: kotlinx.coroutines.Job? = null
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                        // Always start the poll; runForegroundPolling syncs immediately then every
+                        // 3s and checks isEnabled itself — so mid-session sign-in works with no relaunch.
+                        pollingJob?.cancel()
+                        pollingJob = (lifecycleOwner as androidx.lifecycle.LifecycleOwner).lifecycleScope.launch {
+                            app.container.syncManager.runForegroundPolling()
+                        }
+                    } else if (event == androidx.lifecycle.Lifecycle.Event.ON_PAUSE) {
+                        pollingJob?.cancel()
+                        pollingJob = null
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    pollingJob?.cancel()
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
             HarkTheme(darkTheme = isDark) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize().systemBarsPadding()) {
                         AppNavigation(
                             currentScreen = currentScreen,
+                            hasCompletedOnboarding = settings.hasCompletedOnboarding,
                             onNavigate = { screen ->
                                 if (screen is Screen.Tab) {
                                     backStack.clear()
                                     backStack.add(screen)
-                                } else if (screen is Screen.Splash) {
+                                } else if (screen is Screen.Splash || screen is Screen.Onboarding) {
                                     backStack.clear()
-                                    backStack.add(Screen.Splash)
+                                    backStack.add(screen)
                                 } else {
-                                    if (backStack.size == 1 && backStack.first() == Screen.Splash) {
+                                    if (backStack.size == 1 && (backStack.first() == Screen.Splash || backStack.first() == Screen.Onboarding)) {
                                         backStack.clear()
                                         backStack.add(screen)
                                     } else {
@@ -108,7 +138,7 @@ class MainActivity : ComponentActivity() {
                                     backStack.removeAt(backStack.lastIndex)
                                 } else {
                                     val only = backStack.firstOrNull()
-                                    if (only != null && only != Screen.Stream && only != Screen.Splash) {
+                                    if (only != null && only != Screen.Stream && only != Screen.Splash && only != Screen.Onboarding) {
                                         backStack.clear()
                                         backStack.add(Screen.Stream)
                                     } else {
@@ -117,6 +147,31 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                         )
+
+                        // Entry sync loader: cover the app with the Hilbert spinner until the
+                        // first post-sign-in sync finishes, so we don't flash the starter note.
+                        val c = Hark.colors
+                        val inApp = currentScreen != Screen.Splash && currentScreen != Screen.Onboarding
+                        if (initialSyncing && inApp) {
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(c.paper),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                                ) {
+                                    HilbertSpinner(color = c.rust)
+                                    Text(
+                                        "Syncing your notes…",
+                                        style = HarkType.label,
+                                        color = c.inkMuted,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -130,7 +185,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.action == ACTION_TALK || intent?.getBooleanExtra(EXTRA_START_TALK, false) == true) {
+        if (intent == null) return
+        if (intent.action == ACTION_TALK || intent.getBooleanExtra(EXTRA_START_TALK, false)) {
+            backStack.clear()
+            backStack.add(Screen.Stream)
             backStack.add(Screen.Talk())
         }
     }
@@ -142,11 +200,22 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppNavigation(currentScreen: Screen, onNavigate: (Screen) -> Unit, onBack: () -> Unit) {
-    BackHandler(enabled = currentScreen != Screen.Stream && currentScreen != Screen.Splash) { onBack() }
+private fun AppNavigation(
+    currentScreen: Screen,
+    hasCompletedOnboarding: Boolean,
+    onNavigate: (Screen) -> Unit,
+    onBack: () -> Unit,
+) {
+    BackHandler(enabled = currentScreen != Screen.Stream && currentScreen != Screen.Splash && currentScreen != Screen.Onboarding) { onBack() }
 
     when (currentScreen) {
-        Screen.Splash -> SplashScreen(onFinished = { onNavigate(Screen.Stream) })
+        Screen.Splash -> SplashScreen(onFinished = {
+            onNavigate(if (hasCompletedOnboarding) Screen.Stream else Screen.Onboarding)
+        })
+
+        Screen.Onboarding -> OnboardingScreen(onFinish = {
+            onNavigate(Screen.Stream)
+        })
 
         is Screen.Tab -> Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().weight(1f)) {

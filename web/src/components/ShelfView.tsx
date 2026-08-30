@@ -15,13 +15,13 @@ export const ShelfView: React.FC<ShelfViewProps> = ({ notes, onOpenNote, onNewSh
   return (
     <div className="max-w-2xl mx-auto px-6 py-6 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-label text-ink-faint uppercase">The Shelf · {sorted.length}</span>
+        <span className="font-mono text-label text-ink-faint font-medium">The Shelf · {sorted.length}</span>
         <button
           onClick={onNewShelfNote}
-          className="flex items-center gap-1.5 font-mono text-label text-ink-muted hover:text-ink"
+          className="flex items-center gap-1.5 font-mono text-label text-ink-muted hover:text-ink font-medium"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>NEW</span>
+          <span>New</span>
         </button>
       </div>
 

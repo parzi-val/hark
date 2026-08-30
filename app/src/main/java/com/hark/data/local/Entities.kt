@@ -23,6 +23,9 @@ data class NoteEntity(
     val source: Source = Source.TYPED,
     val pinnedToWidget: Boolean = false,
     val shelf: Boolean = false,
+    // Filed away: set automatically when all of a note's tasks complete, or manually from the
+    // note drawer. Archived notes leave the Stream/Today and live only in the Archive (web).
+    val archived: Boolean = false,
     val createdAt: Instant = Instant.now(),
     val updatedAt: Instant = Instant.now(),
     // Stable global id for cross-device sync (the Drive appData snapshot key). Auto-assigned
@@ -53,6 +56,9 @@ data class TaskEntity(
     val title: String,
     val done: Boolean = false,
     val doneAt: Instant? = null,
+    // Set aside: open but not on the active plate. Only meaningful when !done; kept off the
+    // open count and Today, shown grayed in the Stream.
+    val deferred: Boolean = false,
     val dueAt: Instant? = null,
     val dueHint: String? = null,
     val sourceNoteId: Long? = null,
