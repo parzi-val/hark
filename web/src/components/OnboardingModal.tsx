@@ -115,7 +115,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ settings, onFi
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                placeholder="e.g. Bala"
+                placeholder="e.g. Alex"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-ink-hairline bg-transparent font-serif text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-ink"
               />
             </div>

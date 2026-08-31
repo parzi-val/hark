@@ -339,7 +339,7 @@ private fun PageSetup(
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
-                placeholder = { Text("e.g. Bala", style = HarkType.secondary, color = c.inkFaint) },
+                placeholder = { Text("e.g. Alex", style = HarkType.secondary, color = c.inkFaint) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
