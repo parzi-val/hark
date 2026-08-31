@@ -1,0 +1,11 @@
+{
+  // Static SPA served via Cloudflare Workers Assets (the runtime Pages now builds on).
+  // No Worker script — assets-only. SPA fallback is handled by not_found_handling, so we do
+  // NOT ship a _redirects file (its /* -> /index.html rule trips Cloudflare's loop check).
+  "name": "hark",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

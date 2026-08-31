@@ -10,8 +10,11 @@ Hark web is a static Vite SPA (PWA, client-side only, no backend).
 - **Node version:** 20 — pinned via `web/.nvmrc`; if a build ignores it, set a
   `NODE_VERSION=20` environment variable.
 
-SPA routing (path-based, e.g. `/home`) is handled by `web/public/_redirects`
-(`/* /index.html 200`), which Vite copies into `dist/`.
+SPA routing (path-based, e.g. `/home`) is handled by `web/wrangler.jsonc`
+(`assets.not_found_handling: "single-page-application"`). Do **not** add a
+`_redirects` file — its `/* -> /index.html` rule trips the Workers Assets loop
+check (`[code: 100324]`). If a build still complains about `_redirects`, make sure
+none exists in `public/` or `dist/`.
 
 ## Google OAuth (required for Drive sync)
 In the GCP OAuth client → **Authorized JavaScript origins**, add the deployed origin:
