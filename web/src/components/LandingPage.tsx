@@ -125,7 +125,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
       {/* Footer */}
       <footer className="w-full border-t border-ink-hairline py-8 text-center font-mono text-[11px] text-ink-faint relative z-10">
-        <p>Hark · Private, voice-first cognitive companion</p>
+        <p>
+          Hark · Private, voice-first cognitive companion ·{' '}
+          <a href="/privacy.html" className="underline underline-offset-2 hover:text-ink transition-colors">
+            Privacy
+          </a>
+        </p>
       </footer>
     </div>
   );

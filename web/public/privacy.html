@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Hark</title>
+  <meta name="description" content="How Hark handles your data: notes stay on your device and in your own Google Drive. No servers, no tracking." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Quicksand:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper: #F4F2ED;
+      --paper-card: #FAF8F4;
+      --ink: #1C1B19;
+      --ink-muted: rgba(28, 27, 25, 0.62);
+      --ink-faint: rgba(28, 27, 25, 0.42);
+      --hairline: rgba(28, 27, 25, 0.10);
+      --rust: #8A4B34;
+      --rust-tint: rgba(138, 75, 52, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Libre Baskerville', Georgia, serif;
+      font-weight: 400;
+      line-height: 1.72;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 72px 26px 96px; }
+    .eyebrow {
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      color: var(--rust);
+      margin: 0 0 26px;
+    }
+    h1 { font-size: 34px; line-height: 1.2; margin: 0 0 8px; font-weight: 700; }
+    .meta {
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-size: 13px;
+      color: var(--ink-faint);
+      margin: 0 0 32px;
+    }
+    .lede {
+      background: var(--rust-tint);
+      border-left: 2px solid var(--rust);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 0 0 40px;
+      color: var(--ink);
+    }
+    .lede strong { font-weight: 700; }
+    h2 {
+      font-size: 21px;
+      line-height: 1.3;
+      margin: 44px 0 12px;
+      font-weight: 700;
+    }
+    p { font-size: 17px; margin: 0 0 16px; }
+    ul { font-size: 17px; margin: 0 0 16px; padding-left: 1.3em; }
+    li { margin: 0 0 8px; }
+    li::marker { color: var(--ink-faint); }
+    strong { font-weight: 700; }
+    a { color: var(--rust); text-decoration: underline; text-underline-offset: 2px; }
+    a:hover { opacity: 0.8; }
+    code {
+      font-family: 'Quicksand', monospace;
+      font-weight: 500;
+      font-size: 0.9em;
+      background: var(--paper-card);
+      border: 1px solid var(--hairline);
+      border-radius: 4px;
+      padding: 0.05em 0.4em;
+    }
+    hr { border: none; border-top: 1px solid var(--hairline); margin: 48px 0; }
+    footer {
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-size: 12.5px;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="eyebrow">Hark · Privacy</p>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last updated: September 1, 2026</p>
+
+    <div class="lede">
+      <strong>The short version:</strong> Hark has no servers of its own. Your notes live on your
+      device and, if you choose, in your own Google Drive. We never receive, store, or read them.
+    </div>
+
+    <p>
+      Hark is a voice-first notes app that shapes spoken thoughts into clean notes and checklists.
+      This policy explains, in plain terms, what data Hark handles and how.
+    </p>
+
+    <h2>What Hark stores</h2>
+    <ul>
+      <li><strong>Your notes, tasks, and their contents</strong> — created by you, kept locally on your device (in the browser or the app).</li>
+      <li><strong>Your settings</strong> — theme, your name, and, if you add one, your AI API key.</li>
+      <li><strong>Voice recordings</strong> — captured only while you record, sent for transcription, then discarded. Audio is not retained.</li>
+    </ul>
+
+    <h2>Where your data lives — and who can see it</h2>
+    <p>
+      By default, everything stays <strong>on your device</strong>. If you turn on
+      <strong>Google Drive sync</strong>, your notes are stored in your Drive's private
+      <em>application data folder</em> — a hidden area only Hark can reach, inside <strong>your own</strong>
+      Google account. Sync happens directly between your device and your Drive.
+      <strong>Hark runs no backend server and never receives a copy of your notes;</strong> the developer
+      cannot read your data.
+    </p>
+
+    <h2>Google account data</h2>
+    <p>When you connect Google Drive, Hark uses Google Sign-In and requests:</p>
+    <ul>
+      <li><code>drive.appdata</code> — to read and write Hark's own private app-data folder in your Drive. Hark cannot see any of your other Drive files.</li>
+      <li><strong>Your email and basic profile</strong> — used only to identify your account within the app.</li>
+    </ul>
+    <p>
+      Hark's use and transfer of information received from Google APIs adheres to the
+      <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>,
+      including the <strong>Limited Use</strong> requirements. This access is used solely to provide Hark's
+      sync feature. We do not use it for advertising, and we do not sell or transfer it to anyone.
+    </p>
+
+    <h2>AI processing (optional, your key)</h2>
+    <p>
+      If you provide a Groq or OpenAI API key, Hark uses it to <strong>transcribe</strong> your voice
+      recordings and <strong>tidy</strong> raw text into clean notes and tasks. To do this, the relevant
+      audio or text is sent to the provider you configured, using <strong>your</strong> key, and is handled
+      under <strong>their</strong> privacy policy. Hark does not store or route this data anywhere else.
+      If you don't add a key, nothing is sent to any AI provider.
+    </p>
+
+    <h2>What Hark does not do</h2>
+    <ul>
+      <li>No analytics, tracking pixels, or advertising.</li>
+      <li>No selling or sharing of your data.</li>
+      <li>No backend that could read, retain, or expose your notes.</li>
+    </ul>
+
+    <h2>Your controls</h2>
+    <ul>
+      <li><strong>Delete data:</strong> deleting a note, or clearing the app's storage / uninstalling, removes it locally. To remove synced data, delete the notes while signed in (the change syncs), or delete Hark's app-data folder from your Google Drive.</li>
+      <li><strong>Disconnect Google:</strong> sign out in Settings, and/or revoke Hark's access at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</li>
+    </ul>
+
+    <h2>Third-party services</h2>
+    <p>Depending on the features you use, your data may be handled by:</p>
+    <ul>
+      <li><strong>Google</strong> (Drive sync and sign-in) — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</li>
+      <li><strong>Your chosen AI provider</strong> (Groq or OpenAI) — governed by their respective policies.</li>
+    </ul>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes, we'll update the date at the top of this page.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about privacy? Reach us at <a href="mailto:awholelottaparzival@gmail.com">awholelottaparzival@gmail.com</a>.</p>
+
+    <hr />
+    <footer>Hark — a thinking space that shapes what you say into what you meant.</footer>
+  </main>
+</body>
+</html>
