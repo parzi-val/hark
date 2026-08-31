@@ -1,8 +1,8 @@
 // One sync cycle against the user's Drive appDataFolder: pull → merge → apply → push.
 import { db, SettingsEntity } from '../db/db';
-import { mergeSnapshots, parseSnapshot, serializeSnapshot } from './merge';
+import { mergeSnapshots, parseSnapshot, serializeSnapshot, Snapshot } from './merge';
 import { exportSnapshot, applySnapshot } from './local';
-import { readAppData, writeAppData } from './drive';
+import { readAppData, readAppDataById, statAppData, writeAppData } from './drive';
 
 export { isSignedIn, signIn, signOut } from './drive';
 
@@ -14,6 +14,10 @@ const OPTIN_KEY = 'hark.syncApiKey';
 // the guard self-heals — a stalled request can never permanently block the poll.
 let syncingSince = 0;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+// Change-detection cache: skip the download when the file hasn't moved since our last sync, and
+// skip the upload unless this device has something newer. Reset on reload (first sync re-seeds them).
+let lastRemoteSnap: Snapshot | null = null;
+let lastRemoteModified: string | null = null;
 
 // --- per-device flags (never synced) ---
 function flag(key: string): boolean {
@@ -156,7 +160,17 @@ export async function syncNow(): Promise<void> {
   if (syncingSince && Date.now() - syncingSince < 30000) return;
   syncingSince = Date.now();
   try {
-    const remote = parseSnapshot(await readAppData(DATA_FILE));
+    const meta = await statAppData(DATA_FILE);
+
+    // Pull only if the file moved since our last sync; otherwise reuse the cached snapshot.
+    let remote: Snapshot;
+    if (meta?.modifiedTime && meta.modifiedTime === lastRemoteModified && lastRemoteSnap) {
+      remote = lastRemoteSnap;
+    } else {
+      remote = parseSnapshot(meta ? await readAppDataById(meta.id) : null);
+      lastRemoteSnap = remote;
+      lastRemoteModified = meta?.modifiedTime ?? null;
+    }
 
     const hasRealRemoteData =
       remote.notes.some((n) => !isStarterNote(n.title) && !n.deleted) ||
@@ -197,11 +211,29 @@ export async function syncNow(): Promise<void> {
 
     const merged = mergeSnapshots(cleanedLocal, cleanedRemote);
     await applySnapshot(merged);
-    await writeAppData(DATA_FILE, serializeSnapshot(merged));
+
+    // Push only when we have something newer than the remote — otherwise a receiver would write
+    // the file straight back and the two clients would rewrite it forever.
+    if (hasLocalChangesToPush(merged, cleanedRemote)) {
+      lastRemoteModified = await writeAppData(DATA_FILE, serializeSnapshot(merged));
+      lastRemoteSnap = merged;
+    }
     await catchUpApiKey();
   } finally {
     syncingSince = 0;
   }
+}
+
+/** True if `merged` carries a record `remote` lacks or has an older copy of — i.e. this device has
+ *  something to upload. merged is a union of both sides, so it suffices to check every merged
+ *  record matches remote's by uid + updatedAt. */
+function hasLocalChangesToPush(merged: Snapshot, remote: Snapshot): boolean {
+  const rNotes = new Map(remote.notes.map((n) => [n.uid, n.updatedAt] as const));
+  const rTasks = new Map(remote.tasks.map((t) => [t.uid, t.updatedAt] as const));
+  return (
+    merged.notes.some((n) => rNotes.get(n.uid) !== n.updatedAt) ||
+    merged.tasks.some((t) => rTasks.get(t.uid) !== t.updatedAt)
+  );
 }
 
 /**

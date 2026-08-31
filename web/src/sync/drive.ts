@@ -55,8 +55,11 @@ let tokenClient: TokenClient | null = null;
 let pendingResolve: ((r: TokenResponse) => void) | null = null;
 let pendingReject: ((e: unknown) => void) | null = null;
 
-// The GIS token flow can't fetch a token silently after a page reload (it would pop a dialog), so
-// we persist the token and reuse it until it expires (~1h). Background sync never re-invokes GIS.
+// The GIS token model is popup-based — requestAccessToken() opens an OAuth window even with
+// prompt:'none', so it can't refresh silently from the background poll. We therefore persist the
+// token and reuse it until it expires (~1h), and NEVER re-invoke GIS in the background; a lapsed
+// token just makes the sync no-op until the user signs in again. Silent, always-on refresh needs
+// a backend holding a refresh token — see the note in isSignedIn()'s callers.
 const TOKEN_KEY = 'hark.driveToken';
 try {
   const raw = localStorage.getItem(TOKEN_KEY);
@@ -131,8 +134,9 @@ export function signOut(): void {
   if (t) window.google?.accounts.oauth2.revoke(t);
 }
 
-/** A valid access token, or throws. NEVER invokes GIS — background sync must be silent, so a
- *  lapsed token just makes the sync no-op. Interactive (re)auth happens only via signIn(). */
+/** A valid access token, or throws. NEVER invokes GIS — the token model is popup-based, so a
+ *  background refresh would pop an OAuth window. A lapsed token just makes the sync no-op until the
+ *  user signs in again. Interactive (re)auth happens only via signIn(). */
 async function token(): Promise<string> {
   if (isSignedIn()) return accessToken!;
   throw new Error('Drive sign-in required');
@@ -172,17 +176,40 @@ export async function readAppData(name: string): Promise<string | null> {
   return res.text();
 }
 
-/** Create or overwrite a text file in appDataFolder. */
-export async function writeAppData(name: string, content: string): Promise<void> {
+export interface DriveFile {
+  id: string;
+  modifiedTime: string | null;
+}
+
+/** id + modifiedTime for a file (one cheap list call), or null if it doesn't exist. */
+export async function statAppData(name: string): Promise<DriveFile | null> {
+  const q = encodeURIComponent(`name='${name}'`);
+  const res = await authFetch(`${DRIVE}/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime)`);
+  if (!res.ok) throw new Error(`Drive stat failed: ${res.status}`);
+  const data = (await res.json()) as { files?: { id: string; modifiedTime?: string }[] };
+  const f = data.files?.[0];
+  return f ? { id: f.id, modifiedTime: f.modifiedTime ?? null } : null;
+}
+
+/** Read a text file by a known id (from statAppData) — skips the extra list readAppData does. */
+export async function readAppDataById(id: string): Promise<string | null> {
+  const res = await authFetch(`${DRIVE}/files/${id}?alt=media`);
+  if (!res.ok) throw new Error(`Drive read failed: ${res.status}`);
+  return res.text();
+}
+
+/** Create or overwrite a text file in appDataFolder; returns the new modifiedTime (for
+ *  change-detection), or null if the response didn't carry one. */
+export async function writeAppData(name: string, content: string): Promise<string | null> {
   const id = await findFileId(name);
   if (id) {
-    const res = await authFetch(`${UPLOAD}/files/${id}?uploadType=media`, {
+    const res = await authFetch(`${UPLOAD}/files/${id}?uploadType=media&fields=id,modifiedTime`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: content,
     });
     if (!res.ok) throw new Error(`Drive update failed: ${res.status}`);
-    return;
+    return ((await res.json()) as { modifiedTime?: string }).modifiedTime ?? null;
   }
   const boundary = 'hark' + Math.random().toString(36).slice(2);
   const body =
@@ -191,10 +218,11 @@ export async function writeAppData(name: string, content: string): Promise<void>
     `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
     content +
     `\r\n--${boundary}--`;
-  const res = await authFetch(`${UPLOAD}/files?uploadType=multipart&fields=id`, {
+  const res = await authFetch(`${UPLOAD}/files?uploadType=multipart&fields=id,modifiedTime`, {
     method: 'POST',
     headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
     body,
   });
   if (!res.ok) throw new Error(`Drive create failed: ${res.status}`);
+  return ((await res.json()) as { modifiedTime?: string }).modifiedTime ?? null;
 }

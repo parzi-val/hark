@@ -5,7 +5,7 @@ import { stripMarkdown } from '../lib/md';
 interface GridViewProps {
   notes: NoteEntity[];
   tasks: TaskEntity[];
-  filter: 'ALL' | 'OPEN' | 'NOTES' | 'ARCHIVE';
+  filter: 'ALL' | 'OPEN' | 'ARCHIVE';
   onToggleTask: (taskId: number, currentDone: boolean) => void;
   onOpenNote: (noteId: number) => void;
   onEditTask: (task: TaskEntity) => void;
@@ -35,13 +35,7 @@ export const GridView: React.FC<GridViewProps> = ({
 
   let items: GridItem[] = [];
 
-  if (filter === 'NOTES') {
-    items = notes.map((n) => ({
-      type: 'NOTE',
-      note: n,
-      tasks: tasksByNote[n.id!] || [],
-    }));
-  } else if (filter === 'OPEN') {
+  if (filter === 'OPEN') {
     items = tasks.filter((t) => !t.done && !t.deleted).map((t) => ({ type: 'TASK', task: t }));
   } else {
     const noteItems: GridItem[] = notes.map((n) => ({
@@ -188,7 +182,7 @@ export const GridView: React.FC<GridViewProps> = ({
       {items.map((item) => (
         <div
           key={item.type === 'NOTE' ? `n-${item.note.id ?? item.note.uid}` : `t-${item.task.id ?? item.task.uid}`}
-          className="break-inside-avoid mb-4"
+          className="break-inside-avoid-column mb-4"
         >
           {renderCard(item)}
         </div>

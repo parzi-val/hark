@@ -35,7 +35,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinished }) => {
   return (
     <div
       onClick={handleSkip}
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-paper cursor-pointer transition-opacity duration-400 ease-out ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-paper cursor-pointer transition-opacity duration-400 ease-out ${
         fadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >

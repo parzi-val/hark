@@ -21,6 +21,7 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
   const [audioLevel, setAudioLevel] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [extractTasks, setExtractTasks] = useState(true);
+  const [checklistOnly, setChecklistOnly] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [pending, setPending] = useState<HarkAction | null>(null);
   const [targetTitle, setTargetTitle] = useState<string | null>(null);
@@ -79,15 +80,16 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
       setStatusText('Tidying thought & sorting it into your notes…');
       const notes = await recentNoteRefs();
       // Long captures land on the Shelf as prose — don't fragment a ramble into a checklist.
-      const willShelf = !focusedNote && text.length > SHELF_THRESHOLD;
+      const willShelf = !focusedNote && !checklistOnly && text.length > SHELF_THRESHOLD;
       const action = await processCapture({
         transcript: text,
         apiKey: settings.apiKey,
         baseUrl: settings.baseUrl,
         model: settings.model,
-        extractTasks: extractTasks && !willShelf,
+        extractTasks: checklistOnly || (extractTasks && !willShelf),
         notes,
         focusedNote,
+        checklistOnly,
       });
 
       // Resolve target title for the confirmation line.
@@ -145,13 +147,18 @@ export const TalkModal: React.FC<TalkModalProps> = ({ settings, onClose, onSaved
               })}
             </div>
             <p className="font-serif text-secondary text-ink-muted">{statusText}</p>
-            <button
-              type="button"
-              onClick={() => setExtractTasks((v) => !v)}
-              className="font-mono text-meta text-ink-muted self-center font-medium"
-            >
-              Extract tasks: <span className={extractTasks ? 'text-rust font-semibold' : 'text-ink-faint'}>{extractTasks ? 'On' : 'Off'}</span>
-            </button>
+            <div className="flex items-center justify-center gap-4 font-mono text-meta font-medium">
+              <button type="button" onClick={() => setChecklistOnly((v) => !v)}>
+                <span className={checklistOnly ? 'text-rust font-semibold' : 'text-ink-faint'}>
+                  {checklistOnly ? '●' : '○'} Checklist only
+                </span>
+              </button>
+              {!checklistOnly && (
+                <button type="button" onClick={() => setExtractTasks((v) => !v)} className="text-ink-muted">
+                  Extract tasks: <span className={extractTasks ? 'text-rust font-semibold' : 'text-ink-faint'}>{extractTasks ? 'On' : 'Off'}</span>
+                </button>
+              )}
+            </div>
             <button
               onClick={handleFinishRecording}
               className="w-full py-4 rounded-2xl bg-ink text-paper font-mono text-label font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"

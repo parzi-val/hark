@@ -7,6 +7,7 @@ import {
   scheduleSync,
   isApiKeySynced,
   setApiKeySynced,
+  pushSettings,
 } from '../sync/sync';
 import { X, Cloud, Check, Smartphone } from 'lucide-react';
 
@@ -75,6 +76,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       themeMode,
     });
     setSaved(true);
+    void pushSettings().catch(() => {});
     scheduleSync(0);
     setTimeout(() => {
       onSaved();

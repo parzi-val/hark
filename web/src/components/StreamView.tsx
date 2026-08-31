@@ -5,7 +5,7 @@ import { stripMarkdown } from '../lib/md';
 interface StreamViewProps {
   notes: NoteEntity[];
   tasks: TaskEntity[];
-  filter: 'ALL' | 'OPEN' | 'NOTES';
+  filter: 'ALL' | 'OPEN' | 'ARCHIVE';
   onToggleTask: (taskId: number, currentDone: boolean) => void;
   onOpenNote: (noteId: number) => void;
   onEditTask: (task: TaskEntity) => void;
@@ -37,13 +37,7 @@ export const StreamView: React.FC<StreamViewProps> = ({
 
   let items: StreamItem[] = [];
 
-  if (filter === 'NOTES') {
-    items = notes.map((n) => ({
-      type: 'NOTE',
-      note: n,
-      tasks: tasksByNote[n.id!] || [],
-    }));
-  } else if (filter === 'OPEN') {
+  if (filter === 'OPEN') {
     // Flatten all open tasks
     const openTasks = tasks.filter((t) => !t.done);
     items = openTasks.map((t) => ({ type: 'TASK', task: t }));

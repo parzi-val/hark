@@ -1,7 +1,7 @@
 {
   "name": "Hark",
   "short_name": "Hark",
-  "description": "Widgets-first notes with voice capture and AI tidying",
+  "description": "Voice-first notes with AI tidying",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F4F2ED",

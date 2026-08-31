@@ -1,9 +1,9 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, seedStarterIfEmpty, TaskEntity, SettingsEntity, DEFAULT_BASE_URL, DEFAULT_MODEL } from './db/db';
 import { FocusedNote } from './ai/groq';
 import { focusedNoteOf, newShelfNote, setTaskStatus, archiveNote, unarchiveNote } from './db/actions';
-import { syncNow, isSyncEnabled, scheduleSync, firstSyncAsync, subscribeInitialSyncing, getInitialSyncing } from './sync/sync';
+import { syncNow, isSyncEnabled, scheduleSync, firstSyncAsync, subscribeInitialSyncing, getInitialSyncing, signIn, isSignedIn } from './sync/sync';
 import { HilbertLoader } from './components/HilbertLoader';
 import { Header, FilterTab } from './components/Header';
 import { StreamView } from './components/StreamView';
@@ -15,7 +15,6 @@ import { NoteDetail } from './components/NoteDetail';
 import { TalkModal } from './components/TalkModal';
 import { ComposeModal } from './components/ComposeModal';
 import { EditTaskDialog } from './components/EditTaskDialog';
-import { RecallModal } from './components/RecallModal';
 import { SettingsModal } from './components/SettingsModal';
 import { FloatingCapture } from './components/FloatingCapture';
 import { SplashScreen } from './components/SplashScreen';
@@ -33,22 +32,27 @@ function getInitialRoute(): 'landing' | 'home' {
 
 export function App() {
   const [route, setRoute] = useState<'landing' | 'home'>(getInitialRoute);
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem('hark_splash_shown');
-  });
+  const [showSplash, setShowSplash] = useState(true);
   const [filter, setFilter] = useState<FilterTab>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<TaskEntity | null>(null);
   const [showTalk, setShowTalk] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
-  const [showRecall, setShowRecall] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [talkFocus, setTalkFocus] = useState<FocusedNote | null>(null);
   const [view, setView] = useState<'stream' | 'shelf'>('stream');
+  // Sync is on but the token lapsed → show a one-tap reconnect bar (browser can't refresh silently).
+  const [needsReconnect, setNeedsReconnect] = useState(() => isSyncEnabled() && !isSignedIn());
 
   useEffect(() => {
     const handlePopState = () => {
-      setRoute(getInitialRoute());
+      const next = getInitialRoute();
+      setRoute(next);
+      if (next === 'home') {
+        setShowSplash(true);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
@@ -60,6 +64,9 @@ export function App() {
 
   const navigateTo = (newRoute: 'landing' | 'home') => {
     setRoute(newRoute);
+    if (newRoute === 'home') {
+      setShowSplash(true);
+    }
     const targetPath = newRoute === 'home' ? '/home' : '/';
     if (window.location.pathname !== targetPath) {
       window.history.pushState({}, '', targetPath);
@@ -79,15 +86,16 @@ export function App() {
     }
   }, []);
 
-  // Sync on open, every 3s while visible, and whenever the tab regains focus. The interval is
+  // Sync on open, every 1s while visible, and whenever the tab regains focus. The interval is
   // always installed and re-checks isSyncEnabled() per tick — so signing in mid-session starts
   // syncing without a reload, and signing out stops it. syncNow() is self-guarded against overlap.
   useEffect(() => {
     if (isSyncEnabled()) firstSyncAsync(); // initial sync WITH the entry loader
     const run = () => {
+      setNeedsReconnect(isSyncEnabled() && !isSignedIn());
       if (isSyncEnabled() && document.visibilityState === 'visible') void syncNow().catch(() => {});
     };
-    const interval = setInterval(run, 3000);
+    const interval = setInterval(run, 1000);
     document.addEventListener('visibilitychange', run);
     return () => {
       clearInterval(interval);
@@ -129,10 +137,23 @@ export function App() {
   const openCount = tasks.filter((t) => !t.done && !t.deferred).length;
   const deferredCount = tasks.filter((t) => !t.done && t.deferred).length;
 
-  // Stream vs Shelf vs Archive split.
-  const streamNotes = notes.filter((n) => !n.shelf && !n.archived);
-  const shelfNotes = notes.filter((n) => n.shelf && !n.archived);
-  const archivedNotes = notes.filter((n) => n.archived);
+  // Stream vs Shelf vs Archive split + Real-time text search filter
+  const q = searchQuery.toLowerCase().trim();
+  const filterBySearch = (noteList: typeof notes) => {
+    if (!q) return noteList;
+    return noteList.filter((n) => {
+      const matchTitle = n.title ? n.title.toLowerCase().includes(q) : false;
+      const matchBody = n.body ? n.body.toLowerCase().includes(q) : false;
+      return matchTitle || matchBody;
+    });
+  };
+
+  const streamNotes = filterBySearch(notes.filter((n) => !n.shelf && !n.archived));
+  const shelfNotes = filterBySearch(notes.filter((n) => n.shelf && !n.archived));
+  const archivedNotes = filterBySearch(notes.filter((n) => n.archived));
+  const activeTasks = q
+    ? tasks.filter((t) => t.title.toLowerCase().includes(q) || (t.dueHint && t.dueHint.toLowerCase().includes(q)))
+    : tasks;
   const selectedNote = notes.find((n) => n.id === selectedNoteId) || null;
   const focusMode = !!selectedNote?.shelf; // shelf notes open full-screen
 
@@ -161,7 +182,7 @@ export function App() {
     }
   }, [settings.themeMode]);
 
-  // Keyboard Shortcuts (Cmd+N, Cmd+K, T, Esc)
+  // Keyboard Shortcuts (Cmd+N, Cmd+K / /, T, Esc)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isInput =
@@ -169,15 +190,24 @@ export function App() {
         document.activeElement?.tagName === 'TEXTAREA';
 
       if (e.key === 'Escape') {
-        setShowTalk(false);
-        setShowCompose(false);
-        setShowRecall(false);
-        setShowSettings(false);
-        setEditingTask(null);
-        setSelectedNoteId(null);
+        if (searchQuery) {
+          setSearchQuery('');
+          searchInputRef.current?.blur();
+        } else {
+          setShowTalk(false);
+          setShowCompose(false);
+          setShowSettings(false);
+          setEditingTask(null);
+          setSelectedNoteId(null);
+        }
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setShowRecall(true);
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === '/' && !isInput && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
         setShowCompose(true);
@@ -193,7 +223,7 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [searchQuery]);
 
   const handleToggleTask = async (taskId: number, currentDone: boolean) => {
     await setTaskStatus(taskId, currentDone ? 'OPEN' : 'COMPLETED');
@@ -228,6 +258,16 @@ export function App() {
     setSelectedNoteId(id);
   };
 
+  const handleReconnect = async () => {
+    try {
+      await signIn(); // interactive — the button click is the user gesture GIS needs
+      setNeedsReconnect(false);
+      firstSyncAsync(); // briefly show the Hilbert loader until the reconnect sync lands
+    } catch {
+      /* cancelled — leave the bar up */
+    }
+  };
+
   // If user is on the landing page (route === 'landing'), render the marketing/intro home page
   if (route === 'landing') {
     return (
@@ -241,7 +281,20 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-paper flex flex-col text-ink selection:bg-rust selection:text-white relative">
+    <div className={`min-h-screen bg-paper flex flex-col text-ink selection:bg-rust selection:text-white relative ${needsReconnect ? 'pt-9' : ''}`}>
+      {/* Drive session expired — one-tap reconnect (the browser token model can't refresh silently). */}
+      {needsReconnect && (
+        <div className="fixed top-0 inset-x-0 z-[60] h-9 bg-rust text-white flex items-center justify-center gap-3 px-4">
+          <span className="font-mono text-label">Drive sync paused — session expired</span>
+          <button
+            onClick={handleReconnect}
+            className="font-mono text-label underline underline-offset-2 hover:opacity-80"
+          >
+            Reconnect
+          </button>
+        </div>
+      )}
+
       {/* Entry sync loader — after onboarding, hold the Hilbert trace until the first sync lands. */}
       {!showSplash && (!dataReady || initialSyncing) && (
         <div className="fixed inset-0 z-[100] bg-paper flex flex-col items-center justify-center gap-5">
@@ -296,7 +349,9 @@ export function App() {
           onFilterChange={setFilter}
           viewMode={settings.viewMode}
           onToggleViewMode={handleToggleViewMode}
-          onOpenRecall={() => setShowRecall(true)}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchInputRef={searchInputRef}
           onOpenSettings={() => setShowSettings(true)}
           isConfigured={!!settings.apiKey}
           view={view}
@@ -315,21 +370,21 @@ export function App() {
           ) : filter === 'OPEN' ? (
             <KanbanBoard
               notes={streamNotes}
-              tasks={tasks}
+              tasks={activeTasks}
               onOpenNote={(id) => setSelectedNoteId(id)}
               onEditTask={(task) => setEditingTask(task)}
             />
           ) : filter === 'ARCHIVE' ? (
             <ArchiveView
               notes={archivedNotes}
-              tasks={tasks}
+              tasks={activeTasks}
               onOpenNote={(id) => setSelectedNoteId(id)}
               onUnarchive={unarchiveNote}
             />
           ) : settings.viewMode === 'STREAM' ? (
             <StreamView
               notes={streamNotes}
-              tasks={tasks}
+              tasks={activeTasks}
               filter={filter}
               onToggleTask={handleToggleTask}
               onOpenNote={(id) => setSelectedNoteId(id)}
@@ -338,7 +393,7 @@ export function App() {
           ) : (
             <GridView
               notes={streamNotes}
-              tasks={tasks}
+              tasks={activeTasks}
               filter={filter}
               onToggleTask={handleToggleTask}
               onOpenNote={(id) => setSelectedNoteId(id)}
@@ -388,13 +443,6 @@ export function App() {
         />
       )}
 
-      {showRecall && (
-        <RecallModal
-          settings={settings}
-          onClose={() => setShowRecall(false)}
-        />
-      )}
-
       {showSettings && (
         <SettingsModal
           settings={settings}
@@ -411,11 +459,10 @@ export function App() {
         />
       )}
 
-      {/* Hilbert curve splash on initial load */}
+      {/* Hilbert curve splash on initial load and route entry */}
       {showSplash && (
         <SplashScreen
           onFinished={() => {
-            sessionStorage.setItem('hark_splash_shown', 'true');
             setShowSplash(false);
           }}
         />

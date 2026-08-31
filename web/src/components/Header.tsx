@@ -1,7 +1,7 @@
 import React from 'react';
-import { Search, Settings, Grid, AlignJustify, Library } from 'lucide-react';
+import { Search, X, Settings, Grid, AlignJustify, Library } from 'lucide-react';
 
-export type FilterTab = 'ALL' | 'OPEN' | 'NOTES' | 'ARCHIVE';
+export type FilterTab = 'ALL' | 'OPEN' | 'ARCHIVE';
 
 interface HeaderProps {
   openCount: number;
@@ -10,7 +10,9 @@ interface HeaderProps {
   onFilterChange: (f: FilterTab) => void;
   viewMode: 'STREAM' | 'GRID';
   onToggleViewMode: () => void;
-  onOpenRecall: () => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement>;
   onOpenSettings: () => void;
   isConfigured: boolean;
   view: 'stream' | 'shelf';
@@ -26,7 +28,9 @@ export const Header: React.FC<HeaderProps> = ({
   onFilterChange,
   viewMode,
   onToggleViewMode,
-  onOpenRecall,
+  searchQuery,
+  onSearchChange,
+  searchInputRef,
   onOpenSettings,
   isConfigured,
   view,
@@ -48,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
   const tabLabels: Record<FilterTab, string> = {
     ALL: 'All',
     OPEN: 'Open',
-    NOTES: 'Notes',
     ARCHIVE: 'Archive',
   };
 
@@ -56,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="w-full px-6 lg:px-10 pt-6 pb-4 border-b border-ink-hairline bg-paper/90 backdrop-blur-md sticky top-0 z-20">
       <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-4">
         {/* Top Row: Title, Date Meta, and Actions */}
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
           <div className="flex items-baseline gap-3 flex-wrap">
             <h1
               onClick={onNavigateLanding}
@@ -70,41 +73,58 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-ink-muted">
-            {/* Toggle between Stream and Shelf — label shows where you'll go */}
+          <div className="flex items-center gap-3 text-ink-muted w-full sm:w-auto justify-end">
+            {/* Real-time Search Bar */}
+            <div className="relative flex items-center flex-1 sm:flex-initial">
+              <Search className="w-3.5 h-3.5 text-ink-faint absolute left-2.5 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search thoughts..."
+                className="w-full sm:w-44 md:w-56 pl-8 pr-7 py-1.5 rounded-full border border-ink-hairline bg-paper-card text-ink font-serif text-secondary placeholder:text-ink-faint focus:outline-none focus:border-ink focus:sm:w-56 focus:md:w-72 transition-all shadow-2xs"
+              />
+              {searchQuery ? (
+                <button
+                  onClick={() => onSearchChange('')}
+                  className="absolute right-2 text-ink-faint hover:text-ink transition-colors p-0.5 rounded-full"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <kbd className="hidden md:inline-block absolute right-2.5 text-[10px] font-mono text-ink-faint px-1 rounded border border-ink-hairline/60 pointer-events-none">
+                  /
+                </kbd>
+              )}
+            </div>
+
+            {/* Toggle between Stream and Shelf */}
             <button
               onClick={onToggleShelf}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-ink-hairline transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-ink-hairline transition-colors shrink-0"
               title={view === 'shelf' ? 'Back to the Stream' : 'The Shelf — long notes'}
             >
               {view === 'shelf' ? <AlignJustify className="w-4 h-4" /> : <Library className="w-4 h-4" />}
               <span className="font-mono text-label font-medium">{view === 'shelf' ? 'Stream' : 'Shelf'}</span>
             </button>
 
-            {/* View Mode Toggle (Stream vs Grid) — stream only */}
+            {/* View Mode Toggle (Stream vs Grid) */}
             {view === 'stream' && (
               <button
                 onClick={onToggleViewMode}
-                className="p-1.5 rounded-full hover:bg-ink-hairline transition-colors"
+                className="p-1.5 rounded-full hover:bg-ink-hairline transition-colors shrink-0"
                 title={viewMode === 'STREAM' ? 'Switch to Grid View' : 'Switch to Stream View'}
               >
                 {viewMode === 'STREAM' ? <Grid className="w-4 h-4" /> : <AlignJustify className="w-4 h-4" />}
               </button>
             )}
 
-            {/* Recall Semantic Search */}
-            <button
-              onClick={onOpenRecall}
-              className="p-1.5 rounded-full hover:bg-ink-hairline transition-colors"
-              title="Recall Notes (Cmd+K)"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-
             {/* Settings */}
             <button
               onClick={onOpenSettings}
-              className="p-1.5 rounded-full hover:bg-ink-hairline transition-colors relative"
+              className="p-1.5 rounded-full hover:bg-ink-hairline transition-colors relative shrink-0"
               title="Settings"
             >
               <Settings className="w-4 h-4" />
@@ -129,7 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Stream filters, or the Shelf label */}
         {view === 'stream' ? (
           <div className="flex gap-5 font-mono text-label text-ink-faint">
-            {(['ALL', 'OPEN', 'NOTES', 'ARCHIVE'] as const).map((tab) => {
+            {(['ALL', 'OPEN', 'ARCHIVE'] as const).map((tab) => {
               const active = activeFilter === tab;
               return (
                 <button

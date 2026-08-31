@@ -47,7 +47,7 @@ const ACTIONS_SYSTEM = `You are Hark, a voice-first note assistant. Turn the use
 Choose "action":
 - "create": a new, standalone thought → a new note.
 - "append": the user is clearly adding to an existing note they name or reference (e.g. "add milk to the grocery list", "in the sourdough note, jot that..."). Pick its id from "Your notes".
-- "edit": the user is revising the Focused note (only when one is provided) → return the FULL rewritten prose in "body".
+- "edit": the user is adding to or refining the Focused note (only when one is provided) → return the FULL note in "body", MERGING the existing note's content with the new input (keep everything already there, integrate the new). When a Focused note is provided, prefer "edit" over "append" so the result is the complete merged note in one step.
 
 How a note is shaped — this matters:
 - "body" is PROSE ONLY: context, thoughts, narrative. NEVER put the to-do / checklist items in "body"; the items go in "tasks".
@@ -59,12 +59,22 @@ Rules:
 - Write it in the speaker's own words and voice (first person), AS the note. Never narrate the recording — no "the transcript…", "the speaker…", "I described…", "this note covers…".
 - If "Extract tasks" is true, pull actionable items/to-dos into "tasks" (imperative, concise); resolve relative dates against Today into "due" (YYYY-MM-DD), "dueHint" = the words that implied it. If false, return "tasks": [] and do not split anything into tasks.
 - For "append": adding items/things to a list or checklist → put them in "tasks", NOT "body". Use "body" only when the user is genuinely adding narrative prose. Mirror the note's existing task phrasing when obvious (e.g. tasks that start with "Buy ...").
+- For "edit"/"append" on a note that already has tasks (shown under "Its tasks"), return ONLY genuinely new tasks in "tasks" — never repeat a task that is already in that list.
 - Use Markdown in "body" to make longer or multi-topic notes readable: short "##" section headings, "- " bullet lists, **bold** for key terms, "> " for quotes. Keep short, single-idea notes as plain prose — don't over-format. Do NOT start the body with the title as a heading — the title is stored separately; begin the body with the content itself.
 - "title": a short, specific title of 3-6 words, no trailing punctuation. Used only for "create"/"edit"; ignored for "append".
 - Respond with ONLY the JSON object. No prose, no code fences.
 
 JSON shape:
 {"action":"create|append|edit","targetNoteId":number|null,"title":string|null,"body":string,"tasks":[{"title":string,"due":string|null,"dueHint":string|null}],"reason":string}`;
+
+const CHECKLIST_SYSTEM = `You are Hark. The user is dictating a checklist. Turn the transcript into a list, as a single JSON object.
+- Extract EVERY item the user names into "tasks" (imperative/concise; keep their phrasing). Resolve relative dates against Today into "due" (YYYY-MM-DD), "dueHint" = the words that implied it. Never invent items.
+- "body" MUST be "" (empty). Never put the items or any prose in "body".
+- "action": "append" when the user is adding to a list they name or when a Focused note is provided → use its id (from the Focused note / Your notes). Otherwise "create" a new list.
+- "title": for "create", a short specific name for the list, 3-6 words, no trailing punctuation (e.g. "Grocery List", "Packing List"). Ignored for "append".
+- Respond with ONLY the JSON object. No prose, no code fences.
+JSON shape:
+{"action":"create|append","targetNoteId":number|null,"title":string|null,"body":"","tasks":[{"title":string,"due":string|null,"dueHint":string|null}],"reason":string}`;
 
 export async function processCapture(opts: {
   transcript: string;
@@ -74,8 +84,11 @@ export async function processCapture(opts: {
   extractTasks: boolean;
   notes: NoteRef[];
   focusedNote?: FocusedNote | null;
+  checklistOnly?: boolean;
 }): Promise<HarkAction> {
-  const { transcript, apiKey, baseUrl, model = DEFAULT_MODEL, extractTasks, notes, focusedNote } = opts;
+  const { transcript, apiKey, baseUrl, model = DEFAULT_MODEL, extractTasks, notes, focusedNote, checklistOnly = false } = opts;
+  // Checklist mode always extracts items and carries no prose.
+  const extract = extractTasks || checklistOnly;
 
   const fallback = (): HarkAction => ({
     action: 'create',
@@ -102,7 +115,7 @@ export async function processCapture(opts: {
     : 'none';
 
   const user = `Today: ${dateStr} (${dow})
-Extract tasks: ${extractTasks}
+Extract tasks: ${extract}
 Focused note: ${focused}
 Your notes:
 ${noteLines}
@@ -118,7 +131,7 @@ ${transcript}
       body: JSON.stringify({
         model: model || DEFAULT_MODEL,
         messages: [
-          { role: 'system', content: ACTIONS_SYSTEM },
+          { role: 'system', content: checklistOnly ? CHECKLIST_SYSTEM : ACTIONS_SYSTEM },
           { role: 'user', content: user },
         ],
         response_format: { type: 'json_object' },
@@ -128,7 +141,8 @@ ${transcript}
     if (!res.ok) throw new Error(`AI ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content || '{}';
-    return normalizeAction(JSON.parse(content), transcript, extractTasks);
+    const action = normalizeAction(JSON.parse(content), transcript, extract);
+    return checklistOnly ? { ...action, body: '' } : action;
   } catch (e) {
     return fallback();
   }
@@ -221,37 +235,4 @@ export async function shapeNote(opts: {
   } catch (e) {
     return unchanged;
   }
-}
-
-export async function recallQuery(
-  query: string,
-  notesContext: string,
-  apiKey: string,
-  baseUrl: string,
-  model: string = DEFAULT_MODEL
-): Promise<string> {
-  const systemPrompt = `You are Hark Recall, a memory assistant. Answer the user's question directly using ONLY their notes provided below. Be concise, direct, and thoughtful. Cite note titles where appropriate.
-
-USER NOTES:
-${notesContext}`;
-
-  const res = await fetch(chatUrl(baseUrl), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: model || DEFAULT_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: query },
-      ],
-      temperature: 0.3,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Recall failed (${res.status}): ${err}`);
-  }
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || 'No relevant notes found.';
 }

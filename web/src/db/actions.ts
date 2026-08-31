@@ -53,7 +53,7 @@ export const SHELF_THRESHOLD = 400;
  *  so it can tell a checklist note apart and append items as tasks, not prose). */
 export async function recentNoteRefs(limit = 40): Promise<NoteRef[]> {
   const [allNotes, allTasks] = await Promise.all([
-    db.notes.filter((n) => !n.deleted).toArray(),
+    db.notes.filter((n) => !n.deleted && !n.archived).toArray(),
     db.tasks.filter((t) => !t.deleted).toArray(),
   ]);
   const countByNote = new Map<number, number>();
@@ -87,9 +87,18 @@ export async function applyAction(
   const now = Date.now();
 
   const addTasks = async (noteId: number) => {
-    if (a.tasks.length) {
+    if (!a.tasks.length) return;
+    // Skip tasks already on the note — talk-to-edit re-extracts existing ones, which would
+    // otherwise duplicate the whole checklist.
+    const existing = new Set(
+      (await db.tasks.where('sourceNoteId').equals(noteId).toArray())
+        .filter((t) => !t.deleted)
+        .map((t) => t.title.trim().toLowerCase())
+    );
+    const fresh = a.tasks.filter((t) => !existing.has(t.title.trim().toLowerCase()));
+    if (fresh.length) {
       await db.tasks.bulkAdd(
-        a.tasks.map((t) => ({
+        fresh.map((t) => ({
           title: t.title,
           done: false,
           dueHint: t.dueHint ?? null,
@@ -125,7 +134,9 @@ export async function applyAction(
 
   const id = await db.notes.add({
     title: a.title || transcript.slice(0, 40) || 'Untitled note',
-    body: a.body || transcript,
+    // Empty body is intentional for a checklist (items carry it); only fall back to the raw
+    // transcript when there's nothing at all to show.
+    body: a.body || (a.tasks.length ? '' : transcript),
     heardAs: source === 'VOICE' ? transcript : null,
     source,
     pinnedToWidget: false,
