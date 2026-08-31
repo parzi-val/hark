@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [NoteEntity::class, TaskEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)
@@ -35,6 +35,14 @@ abstract class HarkDatabase : RoomDatabase() {
             }
         }
 
+        // Index the sync key — apply() looks rows up by remoteId every tick; a scan was O(N²).
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_notes_remoteId ON notes(remoteId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_remoteId ON tasks(remoteId)")
+            }
+        }
+
         fun get(context: Context): HarkDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -42,7 +50,7 @@ abstract class HarkDatabase : RoomDatabase() {
                     HarkDatabase::class.java,
                     "hark.db",
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

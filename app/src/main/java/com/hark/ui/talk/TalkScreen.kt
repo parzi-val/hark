@@ -3,8 +3,10 @@ package com.hark.ui.talk
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -27,6 +30,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -62,6 +70,17 @@ fun TalkScreen(
     }
     LaunchedEffect(Unit) { ensureListening() }
 
+    // Leaving with a pending result auto-saves it (then just goes back); Discard is the only
+    // path that drops it. Covers both the top-bar Close and the system back gesture.
+    val handleClose = {
+        if (state.phase == TalkPhase.RESULT && state.pending != null) {
+            vm.keep { onClose() }
+        } else {
+            onClose()
+        }
+    }
+    BackHandler { handleClose() }
+
     Column(Modifier.fillMaxSize().background(c.paper)) {
         // Top bar
         Row(
@@ -69,7 +88,7 @@ fun TalkScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MetaLabel("↩ Close", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
+            MetaLabel("↩ Close", color = c.inkMuted, modifier = Modifier.clickable { handleClose() })
             MetaLabel(phaseLabel(state.phase), color = c.inkFaint)
         }
 
@@ -108,31 +127,52 @@ fun TalkScreen(
                 TalkPhase.LISTENING -> {
                     ListeningWave(level = state.level, color = c.rust, modifier = Modifier.height(44.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         MetaLabel(formatElapsed(state.elapsed), color = c.inkFaint)
                         MetaLabel(
-                            text = "Extract tasks: " + if (state.extractTasks) "ON" else "OFF",
-                            color = if (state.extractTasks) c.rust else c.inkFaint,
-                            modifier = Modifier.clickable { vm.toggleExtractTasks() },
+                            text = (if (state.checklistOnly) "● " else "○ ") + "Checklist only",
+                            color = if (state.checklistOnly) c.rust else c.inkFaint,
+                            modifier = Modifier.clickable { vm.toggleChecklistOnly() },
                         )
+                        if (!state.checklistOnly) {
+                            MetaLabel(
+                                text = "Extract tasks: " + if (state.extractTasks) "On" else "Off",
+                                color = if (state.extractTasks) c.rust else c.inkFaint,
+                                modifier = Modifier.clickable { vm.toggleExtractTasks() },
+                            )
+                        }
                     }
-                    FilledPill("STOP & TIDY", onClick = vm::stopAndTidy)
+                    FilledPill("Stop & tidy", onClick = vm::stopAndTidy)
                 }
 
                 TalkPhase.TRANSCRIBING ->
-                    Text("TRANSCRIBING…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
+                    Text("Transcribing…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
 
                 TalkPhase.TIDYING ->
-                    Text("TIDYING…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
+                    Text("Tidying…", style = HarkType.label, color = c.inkMuted, modifier = Modifier.height(44.dp).padding(top = 14.dp))
 
-                TalkPhase.RESULT -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedPill("AGAIN", Modifier.weight(1f), onClick = vm::again)
-                    FilledPill("KEEP", Modifier.weight(2f), onClick = { vm.keep(onKept) })
+                TalkPhase.RESULT -> Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedPill("Discard", Modifier.weight(1f), danger = true, onClick = onClose)
+                    OutlinedPill("Continue", Modifier.weight(1f), onClick = vm::continueTalking)
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(c.ink)
+                            .clickable { vm.keep(onKept) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CheckMark(color = c.paper, modifier = Modifier.size(22.dp))
+                    }
                 }
 
-                TalkPhase.ERROR -> FilledPill("TRY AGAIN", onClick = { ensureListening() })
+                TalkPhase.ERROR -> FilledPill("Try again", onClick = { ensureListening() })
                 TalkPhase.IDLE -> Unit
             }
         }
@@ -144,9 +184,9 @@ private fun ResultView(action: HarkAction, targetTitle: String?) {
     val c = Hark.colors
 
     val headerText = when (action.action) {
-        Action.APPEND -> "→ APPENDING TO \"${targetTitle ?: "a note"}\""
-        Action.EDIT -> "→ EDITING \"${targetTitle ?: "a note"}\""
-        Action.CREATE -> "NEW NOTE"
+        Action.APPEND -> "→ Appending to \"${targetTitle ?: "a note"}\""
+        Action.EDIT -> "→ Editing \"${targetTitle ?: "a note"}\""
+        Action.CREATE -> "New note"
     }
 
     SectionLabel(headerText)
@@ -187,13 +227,30 @@ private fun FilledPill(label: String, modifier: Modifier = Modifier, onClick: ()
 }
 
 @Composable
-private fun OutlinedPill(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun OutlinedPill(label: String, modifier: Modifier = Modifier, danger: Boolean = false, onClick: () -> Unit) {
     val c = Hark.colors
+    val tint = if (danger) c.rust else c.inkMuted
+    val border = if (danger) c.rust.copy(alpha = 0.5f) else c.ink.copy(alpha = 0.16f)
     Box(
         modifier.height(54.dp).clip(RoundedCornerShape(27.dp))
-            .border(1.dp, c.ink.copy(alpha = 0.16f), RoundedCornerShape(27.dp)).clickable { onClick() },
+            .border(1.dp, border, RoundedCornerShape(27.dp)).clickable { onClick() },
         contentAlignment = Alignment.Center,
-    ) { Text(label, style = HarkType.label, color = c.inkMuted) }
+    ) { Text(label, style = HarkType.label, color = tint) }
+}
+
+/** A clean two-stroke checkmark drawn to fit Hark's hand-drawn line motifs (no icon dependency). */
+@Composable
+private fun CheckMark(color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.22f, h * 0.52f)
+            lineTo(w * 0.42f, h * 0.70f)
+            lineTo(w * 0.78f, h * 0.30f)
+        }
+        drawPath(path, color = color, style = Stroke(width = w * 0.12f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
 }
 
 private fun phaseLabel(phase: TalkPhase): String = when (phase) {

@@ -113,10 +113,10 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MetaLabel("HARK · WELCOME", color = c.inkFaint)
+                MetaLabel("Hark · Welcome", color = c.inkFaint)
                 if (pagerState.currentPage < 2) {
                     MetaLabel(
-                        "SKIP",
+                        "Skip",
                         color = c.inkMuted,
                         modifier = Modifier.clickable {
                             scope.launch { pagerState.animateScrollToPage(2) }
@@ -185,7 +185,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("CONTINUE", style = HarkType.label, color = c.paper)
+                        Text("Continue", style = HarkType.label, color = c.paper)
                     }
                 } else {
                     Box(
@@ -208,7 +208,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                             },
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("ENTER HARK", style = HarkType.label, color = c.paper)
+                        Text("Enter Hark", style = HarkType.label, color = c.paper)
                     }
                 }
             }
@@ -270,7 +270,7 @@ private fun PageStreamAndShelf() {
                     .border(1.dp, c.inkHairline, RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                Text("THE STREAM", style = HarkType.label, color = c.ink)
+                Text("The Stream", style = HarkType.label, color = c.ink)
             }
             Text("→", style = HarkType.noteTitle, color = c.rust)
             Box(
@@ -280,7 +280,7 @@ private fun PageStreamAndShelf() {
                     .border(1.dp, c.inkHairline, RoundedCornerShape(16.dp))
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                Text("THE SHELF", style = HarkType.label, color = c.rust)
+                Text("The Shelf", style = HarkType.label, color = c.rust)
             }
         }
         Spacer(Modifier.height(32.dp))
@@ -335,7 +335,7 @@ private fun PageSetup(
 
         // Name input
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("YOUR NAME")
+            SectionLabel("Your name")
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
@@ -354,7 +354,7 @@ private fun PageSetup(
 
         // Optional Google Drive Sync
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("GOOGLE DRIVE SYNC (OPTIONAL)")
+            SectionLabel("Google Drive sync (optional)")
             if (!signedIn) {
                 Box(
                     modifier = Modifier
@@ -367,7 +367,7 @@ private fun PageSetup(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (syncBusy) "CONNECTING…" else "CONNECT GOOGLE DRIVE",
+                        if (syncBusy) "Connecting…" else "Connect Google Drive",
                         style = HarkType.label,
                         color = c.ink,
                     )
@@ -392,7 +392,7 @@ private fun PageSetup(
 
         // Optional AI Key
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("GROQ / OPENAI API KEY (OPTIONAL)")
+            SectionLabel("Groq / OpenAI API key (optional)")
             OutlinedTextField(
                 value = apiKey,
                 onValueChange = onApiKeyChange,

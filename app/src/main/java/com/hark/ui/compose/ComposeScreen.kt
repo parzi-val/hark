@@ -70,7 +70,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MetaLabel("↩ Back", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
-            MetaLabel(if (mode == ComposeMode.NOTE) "Write Note" else "Add Task", color = c.inkFaint)
+            MetaLabel(if (mode == ComposeMode.NOTE) "Write note" else "Add task", color = c.inkFaint)
         }
 
         Column(
@@ -86,7 +86,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                listOf(ComposeMode.NOTE to "NOTE", ComposeMode.TASK to "CHECKLIST ITEM").forEach { (m, label) ->
+                listOf(ComposeMode.NOTE to "Note", ComposeMode.TASK to "Checklist item").forEach { (m, label) ->
                     val isSelected = m == mode
                     Box(
                         modifier = Modifier
@@ -118,7 +118,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
 
                 // Title input
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("TITLE")
+                    SectionLabel("Title")
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
@@ -137,7 +137,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
 
                 // Body input
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("NOTE BODY")
+                    SectionLabel("Note body")
                     OutlinedTextField(
                         value = body,
                         onValueChange = { body = it },
@@ -155,7 +155,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                 }
 
                 MetaLabel(
-                    text = "Extract tasks: " + if (vm.extractTasks) "ON" else "OFF",
+                    text = "Extract tasks: " + if (vm.extractTasks) "On" else "Off",
                     color = if (vm.extractTasks) c.rust else c.inkFaint,
                     modifier = Modifier.clickable { vm.toggleExtractTasks() },
                 )
@@ -170,7 +170,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
 
                 // Task Title input
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("TASK DESCRIPTION")
+                    SectionLabel("Task description")
                     OutlinedTextField(
                         value = taskTitle,
                         onValueChange = { taskTitle = it },
@@ -189,7 +189,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
 
                 // Due Hint input
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionLabel("DUE / REMINDER (OPTIONAL)")
+                    SectionLabel("Due / reminder (optional)")
                     OutlinedTextField(
                         value = taskDueHint,
                         onValueChange = { taskDueHint = it },
@@ -234,7 +234,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (vm.saving) "SAVING…" else "SAVE",
+                        if (vm.saving) "Saving…" else "Save",
                         style = HarkType.label,
                         color = if (hasContent && !busy) c.ink else c.inkFaint,
                     )
@@ -253,7 +253,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (vm.tidying) "TIDYING…" else "TIDY & SAVE",
+                        if (vm.tidying) "Tidying…" else "Tidy & save",
                         style = HarkType.label,
                         color = if (hasContent && !busy) c.paper else c.inkFaint,
                     )
@@ -280,7 +280,7 @@ fun ComposeScreen(onClose: () -> Unit, onSaved: () -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (busy) "ADDING…" else "ADD TO CHECKLIST",
+                        if (busy) "Adding…" else "Add to checklist",
                         style = HarkType.label,
                         color = if (hasContent && !busy) c.paper else c.inkFaint,
                     )

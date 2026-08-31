@@ -10,12 +10,12 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.hark.R
 
-// Bundled prototype fonts: Libre Baskerville (variable, serif) + Syne Mono (accent/labels).
+// Bundled fonts: Libre Baskerville (serif) + Quicksand (accent/labels, matches the web font-mono).
 val HarkSerif: FontFamily = FontFamily(
     Font(R.font.libre_baskerville, FontWeight.Normal),
     Font(R.font.libre_baskerville_italic, FontWeight.Normal, FontStyle.Italic),
 )
-val HarkMono: FontFamily = FontFamily(Font(R.font.syne_mono, FontWeight.Normal))
+val HarkMono: FontFamily = FontFamily(Font(R.font.quicksand, FontWeight.Normal))
 
 /** Named styles used directly by Hark components (mono labels are meant to be UPPERCASE). */
 object HarkType {

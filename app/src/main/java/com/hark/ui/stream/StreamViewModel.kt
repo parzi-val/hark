@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class StreamFilter { ALL, OPEN, NOTES, ARCHIVE }
+enum class StreamFilter { ALL, OPEN, ARCHIVE }
 
 data class StreamUiState(
     val items: List<StreamItem> = emptyList(),
@@ -32,9 +32,6 @@ data class StreamUiState(
                 is StreamItem.Task -> if (!item.task.done) item else null
             }
         }
-        // NOTES = notes as documents (no task checklists — that's what ALL is for).
-        StreamFilter.NOTES -> items.filterIsInstance<StreamItem.Note>()
-            .map { StreamItem.Note(it.note, emptyList()) }
         StreamFilter.ARCHIVE -> archived
     }
 }

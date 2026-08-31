@@ -27,6 +27,7 @@ data class TalkUiState(
     val level: Float = 0f,
     val elapsed: Int = 0,
     val extractTasks: Boolean = true,
+    val checklistOnly: Boolean = false,
     val pending: HarkAction? = null,
     val targetTitle: String? = null,
     val focusedNote: FocusedNote? = null,
@@ -50,6 +51,8 @@ class TalkViewModel(
     private var recorder: AudioRecorder? = null
     private var meterJob: Job? = null
     private var transcript = ""
+    private var baseTranscript = "" // accumulated text from prior "Continue" segments
+    private var kept = false // one-shot guard so a double-tap / double-back can't save twice
 
     init {
         if (focusedNoteId != null) {
@@ -60,9 +63,21 @@ class TalkViewModel(
         }
     }
 
-    /** Start recording. Call only after RECORD_AUDIO is granted. */
+    /** Start a fresh capture. Call only after RECORD_AUDIO is granted. */
     fun start() {
+        baseTranscript = ""
+        beginRecording()
+    }
+
+    /** Keep the current capture and record more — the next tidy combines both segments. */
+    fun continueTalking() {
+        baseTranscript = transcript
+        beginRecording()
+    }
+
+    private fun beginRecording() {
         stopMeter()
+        kept = false
         transcript = ""
         try {
             recorder = recorderFactory().also { it.start() }
@@ -70,7 +85,7 @@ class TalkViewModel(
             _ui.value = TalkUiState(phase = TalkPhase.ERROR, error = "Couldn't start the microphone.")
             return
         }
-        _ui.update { it.copy(phase = TalkPhase.LISTENING, pending = null, error = null) }
+        _ui.update { it.copy(phase = TalkPhase.LISTENING, pending = null, error = null, transcript = "") }
         val startedAt = System.currentTimeMillis()
         meterJob = viewModelScope.launch {
             while (isActive) {
@@ -84,6 +99,10 @@ class TalkViewModel(
 
     fun toggleExtractTasks() {
         _ui.update { it.copy(extractTasks = !it.extractTasks) }
+    }
+
+    fun toggleChecklistOnly() {
+        _ui.update { it.copy(checklistOnly = !it.checklistOnly) }
     }
 
     fun stopAndTidy() {
@@ -108,19 +127,21 @@ class TalkViewModel(
                 _ui.update { it.copy(phase = TalkPhase.ERROR, error = "I didn't catch anything. Try again.") }
                 return@launch
             }
-            transcript = text
-            _ui.update { it.copy(transcript = text, phase = TalkPhase.TIDYING) }
+            transcript = if (baseTranscript.isBlank()) text else "$baseTranscript\n\n$text"
+            _ui.update { it.copy(transcript = transcript, phase = TalkPhase.TIDYING) }
 
             val notes = repo.recentNoteRefs()
             val focused = _ui.value.focusedNote
-            val willShelf = focused == null && text.length > HarkRepository.SHELF_THRESHOLD
-            val extract = _ui.value.extractTasks && !willShelf
+            val checklist = _ui.value.checklistOnly
+            val willShelf = focused == null && !checklist && transcript.length > HarkRepository.SHELF_THRESHOLD
+            val extract = checklist || (_ui.value.extractTasks && !willShelf)
 
             val action = harkService.process(
-                transcript = text,
+                transcript = transcript,
                 extractTasks = extract,
                 notes = notes,
                 focusedNote = focused,
+                checklistOnly = checklist,
             )
 
             // Resolve target title for UI confirmation
@@ -144,8 +165,6 @@ class TalkViewModel(
         }
     }
 
-    fun again() = start()
-
     /** Surface a terminal error (e.g. microphone permission denied). */
     fun fail(message: String) {
         stopMeter()
@@ -155,7 +174,9 @@ class TalkViewModel(
     }
 
     fun keep(onDone: (Long) -> Unit) {
+        if (kept) return
         val action = _ui.value.pending ?: return
+        kept = true
         val heard = transcript
         viewModelScope.launch {
             val noteId = repo.applyAction(action, heard.ifBlank { action.body }, Source.SPOKEN)

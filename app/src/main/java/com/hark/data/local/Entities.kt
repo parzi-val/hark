@@ -14,7 +14,7 @@ enum class Source { SPOKEN, TYPED }
  * A note — a page, not a card. Notes may own tasks (see [TaskEntity.sourceNoteId]).
  * [heardAs] keeps the raw transcript so a bad "tidy" never loses the original capture.
  */
-@Entity(tableName = "notes")
+@Entity(tableName = "notes", indices = [Index("remoteId")])
 data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
@@ -49,7 +49,7 @@ data class NoteEntity(
             onDelete = ForeignKey.SET_NULL,
         )
     ],
-    indices = [Index("sourceNoteId")],
+    indices = [Index("sourceNoteId"), Index("remoteId")],
 )
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

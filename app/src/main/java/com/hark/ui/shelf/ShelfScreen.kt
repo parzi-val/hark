@@ -94,7 +94,7 @@ fun ShelfScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MetaLabel(
-                    text = "STREAM",
+                    text = "Stream",
                     color = c.inkMuted,
                     modifier = Modifier.clickable { onToggleStream() },
                 )

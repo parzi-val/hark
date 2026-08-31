@@ -23,11 +23,14 @@ class HarkService(
         extractTasks: Boolean,
         notes: List<NoteRef>,
         focusedNote: FocusedNote? = null,
+        checklistOnly: Boolean = false,
     ): HarkAction {
         val s = settingsProvider()
         if (!s.isConfigured || transcript.isBlank()) {
             return fallbackAction(transcript)
         }
+        // Checklist mode always extracts items and carries no prose.
+        val extract = extractTasks || checklistOnly
 
         val today = LocalDate.now()
         val dateStr = today.toString()
@@ -53,7 +56,7 @@ class HarkService(
 
         val user = """
             Today: $dateStr ($dow)
-            Extract tasks: $extractTasks
+            Extract tasks: $extract
             Focused note: $focused
             Your notes:
             $noteLines
@@ -64,9 +67,11 @@ class HarkService(
         """.trimIndent()
 
         return try {
-            val response = client.completeJson(ACTIONS_SYSTEM, user)
+            val system = if (checklistOnly) CHECKLIST_SYSTEM else ACTIONS_SYSTEM
+            val response = client.completeJson(system, user)
             val json = JSONObject(response)
-            normalizeAction(json, transcript, extractTasks)
+            val action = normalizeAction(json, transcript, extract)
+            if (checklistOnly) action.copy(body = "") else action
         } catch (e: Exception) {
             fallbackAction(transcript)
         }
@@ -181,7 +186,7 @@ class HarkService(
 Choose "action":
 - "create": a new, standalone thought → a new note.
 - "append": the user is clearly adding to an existing note they name or reference (e.g. "add milk to the grocery list", "in the sourdough note, jot that..."). Pick its id from "Your notes".
-- "edit": the user is revising the Focused note (only when one is provided) → return the FULL rewritten prose in "body".
+- "edit": the user is adding to or refining the Focused note (only when one is provided) → return the FULL note in "body", MERGING the existing note's content with the new input (keep everything already there, integrate the new). When a Focused note is provided, prefer "edit" over "append" so the result is the complete merged note in one step.
 
 How a note is shaped — this matters:
 - "body" is PROSE ONLY: context, thoughts, narrative. NEVER put the to-do / checklist items in "body"; the items go in "tasks".
@@ -193,12 +198,22 @@ Rules:
 - Write it in the speaker's own words and voice (first person), AS the note. Never narrate the recording — no "the transcript…", "the speaker…", "I described…", "this note covers…".
 - If "Extract tasks" is true, pull actionable items/to-dos into "tasks" (imperative, concise); resolve relative dates against Today into "due" (YYYY-MM-DD), "dueHint" = the words that implied it. If false, return "tasks": [] and do not split anything into tasks.
 - For "append": adding items/things to a list or checklist → put them in "tasks", NOT "body". Use "body" only when the user is genuinely adding narrative prose. Mirror the note's existing task phrasing when obvious (e.g. tasks that start with "Buy ...").
+- For "edit"/"append" on a note that already has tasks (shown under "Its tasks"), return ONLY genuinely new tasks in "tasks" — never repeat a task that is already in that list.
 - Use Markdown in "body" to make longer or multi-topic notes readable: short "##" section headings, "- " bullet lists, **bold** for key terms, "> " for quotes. Keep short, single-idea notes as plain prose — don't over-format. Do NOT start the body with the title as a heading — the title is stored separately; begin the body with the content itself.
 - "title": a short, specific title of 3-6 words, no trailing punctuation. Used only for "create"/"edit"; ignored for "append".
 - Respond with ONLY the JSON object. No prose, no code fences.
 
 JSON shape:
 {"action":"create|append|edit","targetNoteId":number|null,"title":string|null,"body":string,"tasks":[{"title":string,"due":string|null,"dueHint":string|null}],"reason":string}"""
+
+        private const val CHECKLIST_SYSTEM = """You are Hark. The user is dictating a checklist. Turn the transcript into a list, as a single JSON object.
+- Extract EVERY item the user names into "tasks" (imperative/concise; keep their phrasing). Resolve relative dates against Today into "due" (YYYY-MM-DD), "dueHint" = the words that implied it. Never invent items.
+- "body" MUST be "" (empty). Never put the items or any prose in "body".
+- "action": "append" when the user is adding to a list they name or when a Focused note is provided → use its id (from the Focused note / Your notes). Otherwise "create" a new list.
+- "title": for "create", a short specific name for the list, 3-6 words, no trailing punctuation (e.g. "Grocery List", "Packing List"). Ignored for "append".
+- Respond with ONLY the JSON object. No prose, no code fences.
+JSON shape:
+{"action":"create|append","targetNoteId":number|null,"title":string|null,"body":"","tasks":[{"title":string,"due":string|null,"dueHint":string|null}],"reason":string}"""
 
         private const val SHAPE_SYSTEM = """You are Hark. Shape the user's raw note into clean, readable Markdown. Keep their words, voice, and meaning; never invent anything.
 - Keep EXACTLY what the author wrote — a cleanup/formatting pass, NOT a rewrite or summary. Preserve every point, example, and detail in order; do NOT summarize, condense, merge, or drop anything. Remove only filler and verbatim repetition, fix punctuation, and add paragraph breaks / Markdown structure. Keep it about the same length. Write in the author's own words (first person); never narrate.

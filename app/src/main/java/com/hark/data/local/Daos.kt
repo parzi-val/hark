@@ -42,7 +42,8 @@ interface NoteDao {
     @Query("SELECT COUNT(*) FROM notes WHERE deleted = 0")
     suspend fun count(): Int
 
-    @Query("SELECT * FROM notes WHERE deleted = 0 ORDER BY updatedAt DESC LIMIT :limit")
+    // Candidates the AI may append to — archived notes are off the table.
+    @Query("SELECT * FROM notes WHERE deleted = 0 AND archived = 0 ORDER BY updatedAt DESC LIMIT :limit")
     suspend fun getRecent(limit: Int = 40): List<NoteEntity>
 
     @Query(
@@ -94,6 +95,9 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE sourceNoteId = :noteId AND deleted = 0 ORDER BY createdAt ASC")
     suspend fun getForNote(noteId: Long): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks WHERE id = :id")
+    suspend fun getById(id: Long): TaskEntity?
 
     @Query("UPDATE tasks SET title = :title, dueHint = :dueHint, dueAt = :dueAt, updatedAt = :now WHERE id = :id")
     suspend fun updateContent(id: Long, title: String, dueHint: String?, dueAt: Instant?, now: Instant)

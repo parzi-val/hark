@@ -57,7 +57,7 @@ fun LexiconWordScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MetaLabel("↩ Back", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
-            MetaLabel("ARCHIVE →", color = c.rust, modifier = Modifier.clickable { onOpenArchive() })
+            MetaLabel("Archive →", color = c.rust, modifier = Modifier.clickable { onOpenArchive() })
         }
 
         if (word == null) {
@@ -84,7 +84,7 @@ fun LexiconWordScreen(
                 ) {
                     Text("❖", style = HarkType.label, color = if (word.tier >= 4) c.rust else c.inkMuted)
                     SectionLabel(
-                        "TIER ${word.tier} ${word.tierLabel}",
+                        "Tier ${word.tier} ${word.tierLabel}",
                         color = if (word.tier >= 4) c.rust else c.inkMuted,
                     )
                 }
@@ -128,7 +128,7 @@ fun LexiconWordScreen(
                 // Use it when
                 if (word.useWhen.isNotBlank()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionLabel("USE IT WHEN", color = c.rust)
+                        SectionLabel("Use it when", color = c.rust)
                         Text(word.useWhen, style = HarkType.secondary, color = c.inkMuted)
                     }
                 }
@@ -136,7 +136,7 @@ fun LexiconWordScreen(
                 // Contrast with a near-synonym
                 if (word.contrastWord.isNotBlank() && word.contrastDistinction.isNotBlank()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionLabel("NOT QUITE THE SAME AS: ${word.contrastWord.uppercase()}", color = c.inkMuted)
+                        SectionLabel("Not quite the same as: ${word.contrastWord}", color = c.inkMuted)
                         Text(word.contrastDistinction, style = HarkType.secondary, color = c.inkMuted)
                     }
                 }
@@ -144,7 +144,7 @@ fun LexiconWordScreen(
                 // Related
                 if (word.nearSynonyms.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        SectionLabel("RELATED", color = c.inkFaint)
+                        SectionLabel("Related", color = c.inkFaint)
                         Text(word.nearSynonyms.joinToString(" · "), style = HarkType.meta, color = c.inkFaint)
                     }
                 }

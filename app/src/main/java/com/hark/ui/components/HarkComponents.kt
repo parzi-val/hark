@@ -36,7 +36,7 @@ import kotlin.math.sin
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier, color: Color? = null) {
     Text(
-        text = text.uppercase(),
+        text = text,
         style = HarkType.label,
         color = color ?: Hark.colors.inkFaint,
         modifier = modifier,
@@ -47,7 +47,7 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier, color: Color? = nu
 @Composable
 fun MetaLabel(text: String, modifier: Modifier = Modifier, color: Color? = null) {
     Text(
-        text = text.uppercase(),
+        text = text,
         style = HarkType.meta,
         color = color ?: Hark.colors.inkFaint,
         modifier = modifier,

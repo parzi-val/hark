@@ -50,6 +50,12 @@ class SyncManager(
     private var syncJob: Job? = null
     private val syncScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Change-detection cache: skip the download when the file hasn't moved since our last sync,
+    // and skip the upload unless this device has something newer. Reset on process restart, so the
+    // first sync then does a full read. Only ever touched inside syncNow (under the mutex).
+    private var lastRemoteSnap: Snapshot? = null
+    private var lastRemoteModified: String? = null
+
     // True only while the post-sign-in FIRST sync runs, so the app can show the Hilbert loader
     // on entry instead of flashing the starter note. The foreground poller never sets this.
     private val _initialSyncing = MutableStateFlow(false)
@@ -81,9 +87,24 @@ class SyncManager(
                 t.startsWith("tap talk and speak")
     }
 
-    /** Full cycle: pull remote → merge → apply locally → push merged. Reentrancy-guarded. */
+    /**
+     * One cycle. Stat the remote file first: reuse the cached snapshot when it hasn't moved since
+     * our last sync (no download), and upload only when this device has a record the remote lacks
+     * or an older copy of (no echo). Reentrancy-guarded.
+     */
     suspend fun syncNow() = mutex.withLock {
-        val remoteSnap = parseSnapshot(drive.read(DATA_FILE))
+        val meta = drive.stat(DATA_FILE)
+
+        val remoteSnap = if (
+            meta?.modifiedTime != null && meta.modifiedTime == lastRemoteModified && lastRemoteSnap != null
+        ) {
+            lastRemoteSnap!!
+        } else {
+            parseSnapshot(meta?.let { drive.readById(it.id) }).also {
+                lastRemoteSnap = it
+                lastRemoteModified = meta?.modifiedTime
+            }
+        }
 
         val hasRealRemoteData = remoteSnap.notes.any { !isStarterNote(it.title) && !it.deleted } ||
                 remoteSnap.tasks.any { !isStarterTask(it.title) && !it.deleted }
@@ -110,11 +131,28 @@ class SyncManager(
 
         val merged = mergeSnapshots(cleanedLocal, cleanedRemote)
         val changed = local.apply(merged)
-        drive.write(DATA_FILE, merged.toJson())
+
+        // Push only when we have something newer than the remote — otherwise every receiver would
+        // write the file straight back and the two clients would rewrite it forever.
+        if (hasLocalChangesToPush(merged, cleanedRemote)) {
+            lastRemoteModified = drive.write(DATA_FILE, merged.toJson())
+            lastRemoteSnap = merged
+        }
+
         catchUpApiKey()
         // Sync writes go through the DAOs directly (not the repo), so refresh the widget here —
         // otherwise it only updated on app-side edits, never on data pulled from Drive.
         if (changed) runCatching { StreamWidget().updateAll(appContext) }
+    }
+
+    /** True if [merged] carries a record [remote] lacks or has an older copy of — i.e. this device
+     *  has something to upload. merged is a union of both sides, so it suffices to check that every
+     *  merged record matches remote's by uid + updatedAt. */
+    private fun hasLocalChangesToPush(merged: Snapshot, remote: Snapshot): Boolean {
+        val rNotes = remote.notes.associateBy({ it.uid }, { it.updatedAt })
+        val rTasks = remote.tasks.associateBy({ it.uid }, { it.updatedAt })
+        return merged.notes.any { rNotes[it.uid] != it.updatedAt } ||
+                merged.tasks.any { rTasks[it.uid] != it.updatedAt }
     }
 
     /**
@@ -131,13 +169,13 @@ class SyncManager(
     }
 
     /**
-     * Poll every 3s while in the foreground. Silent — errors or offline state cleanly no-op.
-     * ponytail: simple loop tied to lifecycle scope fits within <0.1% of Drive rate limit.
+     * Poll every 1s while in the foreground. Silent — errors or offline state cleanly no-op.
+     * ponytail: simple loop tied to lifecycle scope; a few Drive calls/sec is well under quota.
      */
     suspend fun runForegroundPolling() {
         while (currentCoroutineContext().isActive) {
             if (isEnabled) runCatching { syncNow() }
-            delay(3000)
+            delay(1000)
         }
     }
 
@@ -222,10 +260,6 @@ class SyncManager(
 
     fun pushSettingsAsync() {
         syncScope.launch { runCatching { pushSettings() } }
-    }
-
-    fun syncNowAsync() {
-        syncScope.launch { runCatching { syncNow() } }
     }
 
     fun signOut() {

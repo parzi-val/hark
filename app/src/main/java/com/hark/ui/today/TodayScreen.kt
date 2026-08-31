@@ -62,7 +62,7 @@ fun TodayScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 MetaLabel(
-                    "${today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault()).uppercase()} · ${state.greeting.uppercase()}",
+                    "${today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())} · ${state.greeting}",
                     color = c.inkFaint,
                 )
                 Row(
@@ -91,7 +91,7 @@ fun TodayScreen(
                             .padding(horizontal = 8.dp, vertical = 6.dp),
                     ) {
                         Text("λέξις", style = HarkType.label, color = c.rust, maxLines = 1)
-                        Text("ARCHIVE", style = HarkType.label, color = c.inkMuted, maxLines = 1)
+                        Text("Archive", style = HarkType.label, color = c.inkMuted, maxLines = 1)
                     }
                 }
             }
@@ -110,17 +110,17 @@ fun TodayScreen(
         }
 
         if (state.overdue.isNotEmpty()) {
-            item { SectionLabel("OVERDUE · ${state.overdue.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 12.dp, bottom = 6.dp), color = c.rust) }
+            item { SectionLabel("Overdue · ${state.overdue.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 12.dp, bottom = 6.dp), color = c.rust) }
             items(state.overdue, key = { "o${it.id}" }) { TaskRow(it, onToggle = vm::toggle, onToggleDeferred = vm::toggleDeferred, overdue = true) }
         }
 
         if (state.dueToday.isNotEmpty()) {
-            item { SectionLabel("DUE TODAY · ${state.dueToday.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 6.dp)) }
+            item { SectionLabel("Due today · ${state.dueToday.size}", Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 6.dp)) }
             items(state.dueToday, key = { "d${it.id}" }) { TaskRow(it, onToggle = vm::toggle, onToggleDeferred = vm::toggleDeferred, overdue = false) }
         }
 
         if (state.writtenToday.isNotEmpty()) {
-            item { SectionLabel("WRITTEN TODAY", Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 6.dp)) }
+            item { SectionLabel("Written today", Modifier.padding(start = 26.dp, end = 26.dp, top = 24.dp, bottom = 6.dp)) }
             items(state.writtenToday, key = { "n${it.id}" }) { NoteRow(it, onOpenNote) }
         }
 

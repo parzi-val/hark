@@ -70,6 +70,7 @@ fun StreamScreen(
     onOpenNote: (Long) -> Unit = {},
     onToggleShelf: () -> Unit = {},
     onNewShelfNote: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
 ) {
     val vm: StreamViewModel = harkViewModel { StreamViewModel(it.repository) }
     val settingsVm: com.hark.ui.settings.SettingsViewModel = harkViewModel { com.hark.ui.settings.SettingsViewModel(it.settingsStore) }
@@ -112,6 +113,15 @@ fun StreamScreen(
                         Text("Hark", style = HarkType.title, color = c.ink)
                         MetaLabel(headerMeta(state.openCount), color = c.inkFaint)
                     }
+                    Text(
+                        text = "⌕",
+                        style = HarkType.title.copy(fontSize = 22.sp),
+                        color = c.inkMuted,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onOpenSearch() }
+                            .padding(6.dp),
+                    )
                 }
 
                 if (!settings.isConfigured) {
@@ -136,11 +146,10 @@ fun StreamScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        FilterTab("ALL", StreamFilter.ALL, state.filter, vm::setFilter)
-                        FilterTab("OPEN", StreamFilter.OPEN, state.filter, vm::setFilter)
-                        FilterTab("NOTES", StreamFilter.NOTES, state.filter, vm::setFilter)
-                        FilterTab("ARCHIVE", StreamFilter.ARCHIVE, state.filter, vm::setFilter)
+                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        FilterTab("All", StreamFilter.ALL, state.filter, vm::setFilter)
+                        FilterTab("Open", StreamFilter.OPEN, state.filter, vm::setFilter)
+                        FilterTab("Archive", StreamFilter.ARCHIVE, state.filter, vm::setFilter)
                     }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -154,7 +163,7 @@ fun StreamScreen(
                             color = c.inkMuted,
                         )
                         Text(
-                            text = "SHELF · ${state.shelfCount}",
+                            text = "Shelf · ${state.shelfCount}",
                             style = HarkType.label,
                             color = c.inkMuted,
                         )
@@ -398,7 +407,7 @@ private fun FloatingCaptureOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("+", style = HarkType.title.copy(fontSize = 15.sp), color = c.ink)
-                    Text("WRITE", style = HarkType.label, color = c.inkMuted)
+                    Text("Write", style = HarkType.label, color = c.inkMuted)
                 }
 
                 // TALK
@@ -413,7 +422,7 @@ private fun FloatingCaptureOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     TalkNib(color = c.paper)
-                    Text("TALK", style = HarkType.label, color = c.paper)
+                    Text("Talk", style = HarkType.label, color = c.paper)
                 }
             }
         }
@@ -432,7 +441,7 @@ private fun StreamItem.itemKey(): String = when (this) {
 private fun headerMeta(openCount: Int): String {
     val now = LocalDate.now(zone)
     val dow = now.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-    return "$dow ${now.dayOfMonth} · $openCount OPEN"
+    return "$dow ${now.dayOfMonth} · $openCount open"
 }
 
 private fun groupItems(items: List<StreamItem>): List<Pair<String, List<StreamItem>>> {
@@ -442,15 +451,15 @@ private fun groupItems(items: List<StreamItem>): List<Pair<String, List<StreamIt
     }
     val (todayItems, earlier) = unpinned.partition { it.createdAt.atZone(zone).toLocalDate() == today }
     return buildList {
-        if (pinned.isNotEmpty()) add("PINNED" to pinned)
-        if (todayItems.isNotEmpty()) add("TODAY" to todayItems)
-        if (earlier.isNotEmpty()) add("EARLIER" to earlier)
+        if (pinned.isNotEmpty()) add("Pinned" to pinned)
+        if (todayItems.isNotEmpty()) add("Today" to todayItems)
+        if (earlier.isNotEmpty()) add("Earlier" to earlier)
     }
 }
 
 private fun taskMeta(t: TaskEntity): String? = when {
-    t.done -> "DONE"
-    t.deferred -> "DEFERRED"
+    t.done -> "Done"
+    t.deferred -> "Deferred"
     t.dueHint != null -> t.dueHint
     t.dueAt != null -> shortDate(t.dueAt)
     else -> null
@@ -468,8 +477,8 @@ private fun shortDate(instant: Instant): String {
     val d = instant.atZone(zone).toLocalDate()
     val today = LocalDate.now(zone)
     return when (d) {
-        today -> "TODAY"
-        today.plusDays(1) -> "TOMORROW"
+        today -> "Today"
+        today.plusDays(1) -> "Tomorrow"
         else -> d.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
     }
 }

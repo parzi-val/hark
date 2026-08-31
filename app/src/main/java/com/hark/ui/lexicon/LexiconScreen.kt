@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -96,38 +95,40 @@ fun LexiconScreen(
             .fillMaxSize()
             .background(c.paper)
     ) {
-        // Top Bar
-        Row(
+        // Top Bar: back (left) · title (centered) · tier info (right). Icons only, so nothing
+        // competes for width and the title can't get smushed.
+        Box(
             Modifier
                 .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 20.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 12.dp),
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "The Lexicon",
-                    style = HarkType.title.copy(fontSize = 24.sp, lineHeight = 28.sp),
-                    color = c.rust,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                MetaLabel("λέξις · ${state.words.size}", color = c.inkFaint)
-            }
-
-            // Actions kept intrinsic (non-weighted) so the left title yields space first — otherwise
-            // "↩ Back" gets squeezed to one glyph per line on narrow screens.
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MetaLabel("ⓘ TIERS", color = c.inkMuted, modifier = Modifier.clickable { showTiers = true })
-                MetaLabel("↩ Back", color = c.inkMuted, modifier = Modifier.clickable { onClose() })
-            }
+            Text(
+                "↩",
+                style = HarkType.title.copy(fontSize = 20.sp),
+                color = c.inkMuted,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onClose() }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            )
+            Text(
+                "The Lexicon",
+                style = HarkType.title.copy(fontSize = 24.sp, lineHeight = 28.sp),
+                color = c.rust,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            Text(
+                "ⓘ",
+                style = HarkType.title.copy(fontSize = 20.sp),
+                color = c.inkMuted,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { showTiers = true }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            )
         }
 
         // Search field
@@ -161,12 +162,12 @@ fun LexiconScreen(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TierChip("ALL", null, state.selectedTier, vm::setTier)
-            TierChip("T1 ELEVATED", 1, state.selectedTier, vm::setTier)
-            TierChip("T2 DISCRIMINATING", 2, state.selectedTier, vm::setTier)
-            TierChip("T3 LITERARY", 3, state.selectedTier, vm::setTier)
-            TierChip("T4 ESOTERIC", 4, state.selectedTier, vm::setTier)
-            TierChip("T5 LEGENDARY", 5, state.selectedTier, vm::setTier)
+            TierChip("All", null, state.selectedTier, vm::setTier)
+            TierChip("T1 Elevated", 1, state.selectedTier, vm::setTier)
+            TierChip("T2 Discriminating", 2, state.selectedTier, vm::setTier)
+            TierChip("T3 Literary", 3, state.selectedTier, vm::setTier)
+            TierChip("T4 Esoteric", 4, state.selectedTier, vm::setTier)
+            TierChip("T5 Legendary", 5, state.selectedTier, vm::setTier)
         }
 
         // Word list
@@ -271,7 +272,7 @@ private fun TierGuideDialog(onDismiss: () -> Unit) {
             TIER_GUIDE.forEach { t ->
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     SectionLabel(
-                        text = "TIER ${t.n} · ${t.label.uppercase()}",
+                        text = "Tier ${t.n} · ${t.label}",
                         color = if (t.n >= 4) c.rust else c.inkMuted,
                     )
                     Text(t.blurb, style = HarkType.body, color = c.ink.copy(alpha = 0.85f))
@@ -285,7 +286,7 @@ private fun TierGuideDialog(onDismiss: () -> Unit) {
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                MetaLabel("GOT IT", color = c.rust)
+                MetaLabel("Got it", color = c.rust)
             }
         }
     }

@@ -260,8 +260,12 @@ class HarkRepository(
         val now = Instant.now()
 
         val addTasks: suspend (Long) -> Unit = { noteId ->
-            if (action.tasks.isNotEmpty()) {
-                val tasks = action.tasks.map { t ->
+            // Skip tasks already on the note — talk-to-edit re-extracts existing ones, which would
+            // otherwise duplicate the whole checklist. (getForNote returns live tasks only.)
+            val existing = taskDao.getForNote(noteId).map { it.title.trim().lowercase() }.toSet()
+            val fresh = action.tasks.filter { it.title.trim().lowercase() !in existing }
+            if (fresh.isNotEmpty()) {
+                val tasks = fresh.map { t ->
                     TaskEntity(
                         title = t.title,
                         dueAt = t.dueAt,
@@ -318,7 +322,9 @@ class HarkRepository(
         val noteId = noteDao.insert(
             NoteEntity(
                 title = action.title?.ifBlank { null } ?: transcript.take(40).ifBlank { "Untitled note" },
-                body = action.body.ifBlank { transcript },
+                // Empty body is intentional for a checklist (items carry the content); only fall
+                // back to the raw transcript when there's nothing at all to show.
+                body = action.body.ifBlank { if (action.tasks.isNotEmpty()) "" else transcript },
                 heardAs = if (source == Source.SPOKEN) transcript else null,
                 source = source,
                 pinnedToWidget = false,

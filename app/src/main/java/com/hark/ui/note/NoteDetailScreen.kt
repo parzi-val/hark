@@ -118,12 +118,12 @@ fun NoteDetailScreen(
                         vm.deleteNote(onDeleted = onClose)
                     },
                 ) {
-                    Text("DELETE", style = HarkType.label, color = c.rust)
+                    Text("Delete", style = HarkType.label, color = c.rust)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("CANCEL", style = HarkType.label, color = c.inkMuted)
+                    Text("Cancel", style = HarkType.label, color = c.inkMuted)
                 }
             },
             containerColor = c.paper,
@@ -194,13 +194,13 @@ fun NoteDetailScreen(
                 ) {
                     if (state.tasks.isNotEmpty()) {
                         MetaLabel(
-                            text = "${state.tasks.count { !it.done }} TASKS",
+                            text = "${state.tasks.count { !it.done }} tasks",
                             color = c.rust,
                             modifier = Modifier.clickable { showTasksModal = true },
                         )
                     }
                     MetaLabel(
-                        text = "OPTIONS ☰",
+                        text = "Options ☰",
                         color = c.inkMuted,
                         modifier = Modifier.clickable { drawerExpanded = true },
                     )
@@ -289,6 +289,32 @@ fun NoteDetailScreen(
                             )
                         }
 
+                        // Tasks belonging to this note, shown inline. Add via the "N tasks" bar.
+                        if (state.tasks.isNotEmpty()) {
+                            HorizontalDivider(color = c.inkHairline)
+                            SectionLabel("Tasks")
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                state.tasks.forEach { task ->
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.Top,
+                                    ) {
+                                        TaskCheck(task.done, onToggle = { vm.toggleTask(task) }, modifier = Modifier.padding(top = 3.dp))
+                                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text(
+                                                text = task.title,
+                                                style = HarkType.item,
+                                                color = if (task.done || task.deferred) c.inkFaint else c.ink,
+                                                textDecoration = if (task.done) TextDecoration.LineThrough else null,
+                                            )
+                                            task.dueHint?.let { MetaLabel(it, color = c.inkFaint) }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // Raw transcript if spoken (collapsible)
                         note.heardAs?.let { heard ->
                             Spacer(Modifier.height(16.dp))
@@ -298,7 +324,7 @@ fun NoteDetailScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.clickable { heardExpanded = !heardExpanded },
                             ) {
-                                SectionLabel("HEARD AS")
+                                SectionLabel("Heard as")
                                 Text(
                                     text = if (heardExpanded) "▲" else "▼",
                                     style = HarkType.meta,
@@ -488,7 +514,7 @@ private fun VerticalSideDrawer(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    SectionLabel("NOTE OPTIONS")
+                    SectionLabel("Note options")
                     MetaLabel("✕", color = c.inkMuted, modifier = Modifier.clickable { onDismiss() })
                 }
 
@@ -507,7 +533,7 @@ private fun VerticalSideDrawer(
                 if (hasTalk) {
                     DrawerOptionItem(
                         title = "Talk to Edit",
-                        badge = "VOICE",
+                        badge = "Voice",
                         subtext = "Dictate additions or edits",
                         onClick = onTalkClick,
                     )
@@ -526,7 +552,7 @@ private fun VerticalSideDrawer(
                 // 4. SHELF / STREAM
                 DrawerOptionItem(
                     title = if (isShelf) "Move to Stream" else "Move to Shelf",
-                    badge = if (isShelf) "STREAM" else "SHELF",
+                    badge = if (isShelf) "Stream" else "Shelf",
                     subtext = if (isShelf) "Show on stream & daily list" else "Long-form reading list",
                     onClick = onToggleShelfClick,
                 )
@@ -535,7 +561,7 @@ private fun VerticalSideDrawer(
                 if (!isShelf) {
                     DrawerOptionItem(
                         title = if (isPinned) "Unpin from Widget" else "Pin to Widget",
-                        badge = if (isPinned) "★ PINNED" else "☆ PIN",
+                        badge = if (isPinned) "★ Pinned" else "☆ Pin",
                         badgeColor = if (isPinned) c.rust else c.inkFaint,
                         subtext = "Show at the top of 4×2 widget",
                         onClick = onTogglePinClick,
@@ -549,7 +575,7 @@ private fun VerticalSideDrawer(
                 // 6. ARCHIVE / UNARCHIVE NOTE
                 DrawerOptionItem(
                     title = if (isArchived) "Unarchive Note" else "Archive Note",
-                    badge = if (isArchived) "UNARCHIVE" else "ARCHIVE",
+                    badge = if (isArchived) "Unarchive" else "Archive",
                     subtext = if (isArchived) "Bring it back to the Stream" else "File it away — hides from Stream & Today",
                     onClick = onArchiveClick,
                 )
@@ -557,7 +583,7 @@ private fun VerticalSideDrawer(
                 // 7. DELETE NOTE
                 DrawerOptionItem(
                     title = "Delete Note",
-                    badge = "DELETE",
+                    badge = "Delete",
                     subtext = "Permanently remove note and tasks",
                     titleColor = c.rust,
                     badgeColor = c.rust,
@@ -704,14 +730,14 @@ private fun TasksModalDialog(
                             .padding(horizontal = 14.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text("＋ ADD", style = HarkType.label, color = if (newTaskTitle.isNotBlank()) c.paper else c.inkFaint)
+                        Text("＋ Add", style = HarkType.label, color = if (newTaskTitle.isNotBlank()) c.paper else c.inkFaint)
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("DONE", style = HarkType.label, color = c.ink)
+                Text("Done", style = HarkType.label, color = c.ink)
             }
         },
         containerColor = c.paper,

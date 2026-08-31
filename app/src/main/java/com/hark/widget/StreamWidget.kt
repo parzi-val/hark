@@ -78,7 +78,7 @@ class StreamWidget : GlanceAppWidget() {
         val app = context.applicationContext as? HarkApp
         val db = HarkDatabase.get(context.applicationContext)
         val settingsStore = app?.container?.settingsStore ?: SettingsStore(context.applicationContext)
-        val syneMono = ResourcesCompat.getFont(context, R.font.syne_mono) ?: Typeface.MONOSPACE
+        val accentFont = ResourcesCompat.getFont(context, R.font.quicksand) ?: Typeface.MONOSPACE
 
         val initialNotes = db.noteDao().observeAll().first()
         val initialTasks = db.taskDao().observeAll().first()
@@ -112,7 +112,7 @@ class StreamWidget : GlanceAppWidget() {
             val openCount = tasks.count { !it.done }
             val childrenByNote = tasks.filter { it.sourceNoteId != null }.groupBy { it.sourceNoteId }
             val items = buildList {
-                notes.filter { !it.shelf }.forEach { note -> add(StreamItem.Note(note, childrenByNote[note.id].orEmpty().sortedBy { it.createdAt })) }
+                notes.filter { !it.shelf && !it.archived }.forEach { note -> add(StreamItem.Note(note, childrenByNote[note.id].orEmpty().sortedBy { it.createdAt })) }
                 tasks.filter { it.sourceNoteId == null }.forEach { add(StreamItem.Task(it)) }
             }.sortedWith(
                 compareByDescending<StreamItem> { (it as? StreamItem.Note)?.note?.pinnedToWidget ?: false }
@@ -135,7 +135,7 @@ class StreamWidget : GlanceAppWidget() {
             }
 
             val now = LocalDate.now()
-            val dateText = "${now.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.getDefault()).uppercase()} ${now.dayOfMonth}"
+            val dateText = "${now.dayOfWeek.getDisplayName(DateTextStyle.SHORT, Locale.getDefault())} ${now.dayOfMonth}"
             val word = if (settings.showWordOfTheDay) {
                 app?.container?.lexiconRepository?.getWordForDate(now)
             } else null
@@ -153,12 +153,12 @@ class StreamWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.fillMaxWidth().clickable(launch(context, MainActivity::class.java)),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MonoLabel(context, syneMono, "HARK · $openCount OPEN", 13f, ink.toArgb())
+                    MonoLabel(context, accentFont, "Hark · $openCount open", 13f, ink.toArgb())
                     Spacer(GlanceModifier.defaultWeight())
                     if (word != null) {
-                        MonoLabel(context, syneMono, "❖ ${word.word.uppercase()} · $dateText", 12f, rust.toArgb())
+                        MonoLabel(context, accentFont, "❖ ${word.word.replaceFirstChar { it.uppercase() }} · $dateText", 12f, rust.toArgb())
                     } else {
-                        MonoLabel(context, syneMono, dateText, 13f, inkFaint.toArgb())
+                        MonoLabel(context, accentFont, dateText, 13f, inkFaint.toArgb())
                     }
                 }
                 Spacer(GlanceModifier.height(10.dp))
@@ -182,7 +182,7 @@ class StreamWidget : GlanceAppWidget() {
                                     ) {}
                                 }
                                 is WidgetRow.NoteHeader -> NoteRow(context, row.note, ink, rust, inkFaint)
-                                is WidgetRow.TaskLine -> TaskRow(context, syneMono, row.task, nested = row.nested, ink = ink, rust = rust, inkFaint = inkFaint, isDark = isDark)
+                                is WidgetRow.TaskLine -> TaskRow(context, accentFont, row.task, nested = row.nested, ink = ink, rust = rust, inkFaint = inkFaint, isDark = isDark)
                             }
                         }
                     }
@@ -196,9 +196,9 @@ class StreamWidget : GlanceAppWidget() {
                     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         IconCell(GlanceModifier.defaultWeight(), "＋", 21f, context, MainActivity::class.java, ink)
                         VDivider(inkHairline)
-                        TalkCell(GlanceModifier.defaultWeight(), context, syneMono, rust)
+                        TalkCell(GlanceModifier.defaultWeight(), context, accentFont, rust)
                         VDivider(inkHairline)
-                        MonoCell(GlanceModifier.defaultWeight(), context, syneMono, "TODAY", MainActivity::class.java, ink)
+                        MonoCell(GlanceModifier.defaultWeight(), context, accentFont, "Today", MainActivity::class.java, ink)
                         VDivider(inkHairline)
                         IconCell(GlanceModifier.defaultWeight(), "⌕", 20f, context, MainActivity::class.java, ink)
                     }
@@ -305,7 +305,7 @@ private fun TaskRow(
         )
         task.dueHint?.let { hint ->
             Spacer(GlanceModifier.width(6.dp))
-            MonoLabel(context, mono, hint.uppercase(), 10.5f, rust.toArgb())
+            MonoLabel(context, mono, hint, 10.5f, rust.toArgb())
             Spacer(GlanceModifier.width(2.dp))
         }
     }
@@ -335,7 +335,7 @@ private fun TalkCell(modifier: GlanceModifier, context: Context, mono: Typeface,
             Spacer(GlanceModifier.width(2.dp))
             Box(GlanceModifier.width(2.dp).height(10.dp).background(rust)) {}
             Spacer(GlanceModifier.width(6.dp))
-            MonoLabel(context, mono, "TALK", 12.5f, rust.toArgb())
+            MonoLabel(context, mono, "Talk", 12.5f, rust.toArgb())
         }
     }
 }

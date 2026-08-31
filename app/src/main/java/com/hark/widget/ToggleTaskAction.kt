@@ -22,7 +22,16 @@ class ToggleTaskAction : ActionCallback {
             doneAt = if (newDone) now else null,
             updatedAt = now
         )
-        
+
+        // Reconcile the parent note's archive (all tasks done → archived), mirroring the repo, so a
+        // note finished from the widget leaves the widget and the stream. Set-true-only.
+        db.taskDao().getById(taskId)?.sourceNoteId?.let { noteId ->
+            val tasks = db.taskDao().getForNote(noteId)
+            if (tasks.isNotEmpty() && tasks.all { it.done }) {
+                db.noteDao().setArchived(noteId, true, now)
+            }
+        }
+
         StreamWidget().updateAll(context)
     }
 

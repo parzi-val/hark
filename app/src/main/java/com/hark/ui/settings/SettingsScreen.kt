@@ -148,7 +148,7 @@ fun SettingsScreen(onClose: () -> Unit) {
         ) {
             // Profile / Name section
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("YOUR NAME")
+                SectionLabel("Your name")
                 OutlinedTextField(
                     value = currentSettings.userName,
                     onValueChange = { vm.setUserName(it) },
@@ -169,7 +169,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // App Appearance section (LIVE UPDATING)
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionLabel("APP THEME")
+                SectionLabel("App theme")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -189,7 +189,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = mode.name,
+                                text = mode.name.lowercase().replaceFirstChar { it.uppercase() },
                                 style = HarkType.label,
                                 color = if (isSelected) c.paper else c.inkMuted,
                             )
@@ -202,15 +202,15 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // Widget Appearance section (LIVE UPDATING)
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                SectionLabel("WIDGET THEME")
+                SectionLabel("Widget theme")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     listOf(
-                        WidgetTheme.PAPER to "PAPER",
-                        WidgetTheme.DARK to "DARK",
-                        WidgetTheme.MATCH_APP to "MATCH APP",
+                        WidgetTheme.PAPER to "Paper",
+                        WidgetTheme.DARK to "Dark",
+                        WidgetTheme.MATCH_APP to "Match app",
                     ).forEach { (theme, label) ->
                         val isSelected = theme == currentSettings.widgetTheme
                         Box(
@@ -240,7 +240,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        SectionLabel("WIDGET BACKGROUND OPACITY")
+                        SectionLabel("Widget background opacity")
                         MetaLabel("${currentSettings.widgetOpacity}%", color = c.rust)
                     }
                     Slider(
@@ -256,12 +256,12 @@ fun SettingsScreen(onClose: () -> Unit) {
                     )
                 }
 
-                SectionLabel("WIDGET BOTTOM TOOLBAR")
+                SectionLabel("Widget bottom toolbar")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    listOf(true to "SHOW TOOLBAR", false to "HIDE TOOLBAR").forEach { (show, label) ->
+                    listOf(true to "Show toolbar", false to "Hide toolbar").forEach { (show, label) ->
                         val isSelected = currentSettings.widgetShowToolbar == show
                         Box(
                             modifier = Modifier
@@ -289,7 +289,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // Vocabulary / Lexicon Section
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionLabel("WORD OF THE DAY (λέξις)")
+                SectionLabel("Word of the day (λέξις)")
                 Text(
                     "Show an elevated daily vocabulary card on the Today screen for conceptual precision.",
                     style = HarkType.secondary,
@@ -299,7 +299,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    listOf(true to "ENABLED", false to "DISABLED").forEach { (enabled, label) ->
+                    listOf(true to "Enabled", false to "Disabled").forEach { (enabled, label) ->
                         val isSelected = currentSettings.showWordOfTheDay == enabled
                         Box(
                             modifier = Modifier
@@ -327,7 +327,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // Sync (Google Drive appData)
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SectionLabel("SYNC")
+                SectionLabel("Sync")
                 Text(
                     "Keep your notes in step across devices through your own private Google Drive. Optional — Hark works fully offline without it.",
                     style = HarkType.secondary,
@@ -345,7 +345,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            if (syncBusy) "CONNECTING…" else "SIGN IN WITH GOOGLE",
+                            if (syncBusy) "Connecting…" else "Sign in with Google",
                             style = HarkType.label,
                             color = c.paper,
                         )
@@ -358,7 +358,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                     ) {
                         MetaLabel("✓ Connected · Drive", color = c.rust)
                         MetaLabel(
-                            "SIGN OUT",
+                            "Sign out",
                             color = c.inkMuted,
                             modifier = Modifier.clickable {
                                 sync.signOut()
@@ -386,7 +386,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                             Text("Syncs live on edit, save, delete & resume", style = HarkType.meta, color = c.inkFaint)
                         }
                         Text(
-                            "● ACTIVE",
+                            "● Active",
                             style = HarkType.label,
                             color = c.rust,
                             maxLines = 1,
@@ -444,7 +444,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             HorizontalDivider(color = c.inkHairline)
 
-            Text("AI Configuration", style = HarkType.title, color = c.ink)
+            SectionLabel("AI configuration")
 
             Text(
                 "Hark connects directly to any OpenAI-compatible API to tidy your notes and extract tasks. Default provider is Groq for low-latency responses.",
@@ -454,7 +454,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // API Key field
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("API KEY")
+                SectionLabel("API key")
                 OutlinedTextField(
                     value = apiKey,
                     onValueChange = {
@@ -467,7 +467,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
                         Text(
-                            text = if (showApiKey) "HIDE" else "SHOW",
+                            text = if (showApiKey) "Hide" else "Show",
                             style = HarkType.label,
                             color = c.inkMuted,
                             modifier = Modifier
@@ -492,7 +492,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // Base URL field
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("BASE URL")
+                SectionLabel("Base URL")
                 OutlinedTextField(
                     value = baseUrl,
                     onValueChange = {
@@ -514,7 +514,7 @@ fun SettingsScreen(onClose: () -> Unit) {
 
             // Model field
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("MODEL")
+                SectionLabel("Model")
                 OutlinedTextField(
                     value = model,
                     onValueChange = {
@@ -577,7 +577,7 @@ fun SettingsScreen(onClose: () -> Unit) {
                     },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("SAVE AI SETTINGS", style = HarkType.label, color = c.paper)
+                Text("Save AI settings", style = HarkType.label, color = c.paper)
             }
         }
     }

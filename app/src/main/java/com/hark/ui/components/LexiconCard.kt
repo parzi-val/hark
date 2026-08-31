@@ -61,12 +61,12 @@ fun LexiconCard(
                         color = if (word.tier >= 4) c.rust else c.inkMuted,
                     )
                     SectionLabel(
-                        text = "TIER ${word.tier} · ${word.tierLabel.uppercase()}",
+                        text = "Tier ${word.tier} · ${word.tierLabel}",
                         color = if (word.tier >= 4) c.rust else c.inkMuted,
                     )
                 }
 
-                MetaLabel(text = "DETAILS →", color = c.inkFaint)
+                MetaLabel(text = "Details →", color = c.inkFaint)
             }
 
             // Word on its own line; phonetic + part of speech below it. Keeping them on one

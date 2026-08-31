@@ -59,12 +59,12 @@ fun EditTaskDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SectionLabel("EDIT TASK")
-                MetaLabel("DELETE", color = c.rust, modifier = Modifier.clickable { onDelete() })
+                SectionLabel("Edit task")
+                MetaLabel("Delete", color = c.rust, modifier = Modifier.clickable { onDelete() })
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel("TASK DESCRIPTION")
+                SectionLabel("Task description")
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -81,7 +81,7 @@ fun EditTaskDialog(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionLabel("DUE / REMINDER (OPTIONAL)")
+                SectionLabel("Due / reminder (optional)")
                 OutlinedTextField(
                     value = dueHint,
                     onValueChange = { dueHint = it },
@@ -113,7 +113,7 @@ fun EditTaskDialog(
                         .clickable { onDismiss() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("CANCEL", style = HarkType.label, color = c.inkMuted)
+                    Text("Cancel", style = HarkType.label, color = c.inkMuted)
                 }
 
                 val hasContent = title.isNotBlank()
@@ -128,7 +128,7 @@ fun EditTaskDialog(
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("SAVE", style = HarkType.label, color = if (hasContent) c.paper else c.inkFaint)
+                    Text("Save", style = HarkType.label, color = if (hasContent) c.paper else c.inkFaint)
                 }
             }
         }

@@ -16,6 +16,9 @@ private const val DRIVE = "https://www.googleapis.com/drive/v3"
 private const val UPLOAD = "https://www.googleapis.com/upload/drive/v3"
 private val JSON = "application/json".toMediaType()
 
+/** Minimal Drive file metadata for cheap change-detection (skip the download when unchanged). */
+data class DriveFile(val id: String, val modifiedTime: String?)
+
 /**
  * Reads/writes text files in the app's private Drive appDataFolder. [tokenProvider] returns an
  * OAuth access token; [onUnauthorized] invalidates a stale one so a 401 can be retried —
@@ -58,6 +61,37 @@ class DriveClient(
         }
     }
 
+    /** id + modifiedTime for a file (one cheap list call), or null if it doesn't exist. */
+    suspend fun stat(name: String): DriveFile? {
+        val q = URLEncoder.encode("name='$name'", "UTF-8")
+        exec { auth ->
+            Request.Builder()
+                .url("$DRIVE/files?spaces=appDataFolder&q=$q&fields=files(id,modifiedTime)")
+                .header("Authorization", auth)
+                .build()
+        }.use { res ->
+            if (!res.isSuccessful) throw IOException("Drive stat failed: ${res.code}")
+            val body = res.body?.string() ?: return null
+            val files = JSONObject(body).optJSONArray("files") ?: return null
+            if (files.length() == 0) return null
+            val f = files.getJSONObject(0)
+            return DriveFile(f.getString("id"), f.optString("modifiedTime").ifEmpty { null })
+        }
+    }
+
+    /** File text by a known id (from [stat]) — skips the extra list [read] would do. */
+    suspend fun readById(id: String): String? {
+        exec { auth ->
+            Request.Builder()
+                .url("$DRIVE/files/$id?alt=media")
+                .header("Authorization", auth)
+                .build()
+        }.use { res ->
+            if (!res.isSuccessful) throw IOException("Drive read failed: ${res.code}")
+            return res.body?.string()
+        }
+    }
+
     /** File text from appDataFolder, or null if it doesn't exist yet. */
     suspend fun read(name: String): String? {
         val id = findFileId(name) ?: return null
@@ -72,18 +106,21 @@ class DriveClient(
         }
     }
 
-    /** Create or overwrite a text file in appDataFolder. */
-    suspend fun write(name: String, content: String) {
+    /** Create or overwrite a text file in appDataFolder; returns the new modifiedTime (for
+     *  change-detection), or null if the response didn't carry one. */
+    suspend fun write(name: String, content: String): String? {
         val id = findFileId(name)
         if (id != null) {
             exec { auth ->
                 Request.Builder()
-                    .url("$UPLOAD/files/$id?uploadType=media")
+                    .url("$UPLOAD/files/$id?uploadType=media&fields=id,modifiedTime")
                     .header("Authorization", auth)
                     .patch(content.toRequestBody(JSON))
                     .build()
-            }.use { res -> if (!res.isSuccessful) throw IOException("Drive update failed: ${res.code}") }
-            return
+            }.use { res ->
+                if (!res.isSuccessful) throw IOException("Drive update failed: ${res.code}")
+                return res.body?.string()?.let { JSONObject(it).optString("modifiedTime").ifEmpty { null } }
+            }
         }
         val boundary = "hark" + System.currentTimeMillis()
         val meta = JSONObject()
@@ -101,10 +138,13 @@ class DriveClient(
         }
         exec { auth ->
             Request.Builder()
-                .url("$UPLOAD/files?uploadType=multipart&fields=id")
+                .url("$UPLOAD/files?uploadType=multipart&fields=id,modifiedTime")
                 .header("Authorization", auth)
                 .post(multipart.toRequestBody("multipart/related; boundary=$boundary".toMediaType()))
                 .build()
-        }.use { res -> if (!res.isSuccessful) throw IOException("Drive create failed: ${res.code}") }
+        }.use { res ->
+            if (!res.isSuccessful) throw IOException("Drive create failed: ${res.code}")
+            return res.body?.string()?.let { JSONObject(it).optString("modifiedTime").ifEmpty { null } }
+        }
     }
 }

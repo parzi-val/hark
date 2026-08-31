@@ -3,7 +3,6 @@ package com.hark.di
 import android.content.Context
 import com.hark.ai.HarkService
 import com.hark.ai.OpenAiClient
-import com.hark.ai.RecallService
 import com.hark.ai.SettingsStore
 import com.hark.ai.TidyService
 import com.hark.data.local.HarkDatabase
@@ -66,8 +65,6 @@ class AppContainer(context: Context) {
     val harkService = HarkService(openAiClient, settingsProvider = { settingsStore.settings.value })
 
     val tidyService = TidyService(openAiClient)
-
-    val recallService = RecallService(openAiClient)
 
     val lexiconRepository = com.hark.data.repo.LexiconRepository(appContext)
 
