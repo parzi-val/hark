@@ -5,6 +5,8 @@ import {
   signOut,
   isSignedIn,
   scheduleSync,
+  setSyncEnabled,
+  firstSyncAsync,
   isApiKeySynced,
   setApiKeySynced,
   pushSettings,
@@ -46,8 +48,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setSyncMsg(null);
     try {
       await signIn();
+      setSyncEnabled(true); // the poll (App.tsx) is gated on this — without it, sync never runs
       setSynced(true);
       setSyncMsg('Connected to Google Drive');
+      firstSyncAsync(); // pull notes now, with the entry loader — parity with onboarding's "Enter Hark"
     } catch (e: any) {
       setSyncMsg(e?.message || 'Failed to sign in');
     } finally {
@@ -57,6 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleSignOut = () => {
     signOut();
+    setSyncEnabled(false); // deliberate sign-out → stop the poll and suppress the (lapsed-token) reconnect bar
     setSynced(false);
     setSyncMsg('Signed out');
   };
