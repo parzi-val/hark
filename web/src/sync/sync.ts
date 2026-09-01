@@ -107,7 +107,7 @@ export async function pullSettingsIfFresh(): Promise<void> {
   const s = await db.settings.get(1);
   const patch: Partial<SettingsEntity> = {};
   if (cfg.baseUrl && (!s?.baseUrl || s.baseUrl === 'https://api.groq.com/openai/v1')) patch.baseUrl = cfg.baseUrl;
-  if (cfg.model && (!s?.model || s.model === 'llama-3.3-70b-versatile')) patch.model = cfg.model;
+  if (cfg.model && (!s?.model || s.model === 'openai/gpt-oss-120b')) patch.model = cfg.model;
   if (cfg.themeMode) patch.themeMode = cfg.themeMode;
   if (cfg.userName && !s?.userName) patch.userName = cfg.userName;
   if (cfg.apiKey && !s?.apiKey?.trim()) {

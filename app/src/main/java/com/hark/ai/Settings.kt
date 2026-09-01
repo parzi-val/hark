@@ -29,7 +29,7 @@ data class AiSettings(
     companion object {
         const val DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
         // Configurable — if this id is retired, change it in Settings.
-        const val DEFAULT_MODEL = "llama-3.3-70b-versatile"
+        const val DEFAULT_MODEL = "openai/gpt-oss-120b"
     }
 }
 
