@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { margin: 0; background: #555; display: flex; gap: 12px; padding: 16px; flex-wrap: wrap; }
+  canvas#out { display: block; width: 700px; height: 367px; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
+  #gl { display: none; }
+</style>
+</head>
+<body>
+<canvas id="gl" width="1200" height="630"></canvas>
+<canvas id="out" width="1200" height="630"></canvas>
+<script>
+const VERT = `#version 300 es
+in vec2 pos;
+void main() { gl_Position = vec4(pos, 0.0, 1.0); }`;
+
+const FRAG = `#version 300 es
+precision highp float;
+uniform vec2 resolution;
+uniform float time;
+uniform float waveSpeed;
+uniform float waveFrequency;
+uniform float waveAmplitude;
+uniform vec3 waveColor;
+uniform vec3 backgroundColor;
+uniform vec2 mousePos;
+uniform int enableMouseInteraction;
+uniform float mouseRadius;
+uniform float colorNum;
+uniform float pixelSize;
+out vec4 fragColor;
+vec4 mod289(vec4 x){ return x - floor(x*(1.0/289.0))*289.0; }
+vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); }
+vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314*r; }
+vec2 fade(vec2 t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
+float cnoise(vec2 P){
+  vec4 Pi = floor(P.xyxy) + vec4(0.0,0.0,1.0,1.0);
+  vec4 Pf = fract(P.xyxy) - vec4(0.0,0.0,1.0,1.0);
+  Pi = mod289(Pi);
+  vec4 ix = Pi.xzxz; vec4 iy = Pi.yyww;
+  vec4 fx = Pf.xzxz; vec4 fy = Pf.yyww;
+  vec4 i = permute(permute(ix) + iy);
+  vec4 gx = fract(i * (1.0/41.0)) * 2.0 - 1.0;
+  vec4 gy = abs(gx) - 0.5;
+  vec4 tx = floor(gx + 0.5);
+  gx = gx - tx;
+  vec2 g00 = vec2(gx.x, gy.x); vec2 g10 = vec2(gx.y, gy.y);
+  vec2 g01 = vec2(gx.z, gy.z); vec2 g11 = vec2(gx.w, gy.w);
+  vec4 norm = taylorInvSqrt(vec4(dot(g00,g00), dot(g01,g01), dot(g10,g10), dot(g11,g11)));
+  g00 *= norm.x; g01 *= norm.y; g10 *= norm.z; g11 *= norm.w;
+  float n00 = dot(g00, vec2(fx.x, fy.x));
+  float n10 = dot(g10, vec2(fx.y, fy.y));
+  float n01 = dot(g01, vec2(fx.z, fy.z));
+  float n11 = dot(g11, vec2(fx.w, fy.w));
+  vec2 fade_xy = fade(Pf.xy);
+  vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
+  return 2.3 * mix(n_x.x, n_x.y, fade_xy.y);
+}
+float fbm(vec2 p){
+  float value = 0.0; float amp = 1.0; float freq = waveFrequency;
+  for (int i = 0; i < 4; i++) { value += amp * abs(cnoise(p)); p *= freq; amp *= waveAmplitude; }
+  return value;
+}
+float pattern(vec2 p){ vec2 p2 = p - time * waveSpeed; return fbm(p + fbm(p2)); }
+const float bayer[64] = float[64](
+  0.0/64.0,48.0/64.0,12.0/64.0,60.0/64.0,3.0/64.0,51.0/64.0,15.0/64.0,63.0/64.0,
+  32.0/64.0,16.0/64.0,44.0/64.0,28.0/64.0,35.0/64.0,19.0/64.0,47.0/64.0,31.0/64.0,
+  8.0/64.0,56.0/64.0,4.0/64.0,52.0/64.0,11.0/64.0,59.0/64.0,7.0/64.0,55.0/64.0,
+  40.0/64.0,24.0/64.0,36.0/64.0,20.0/64.0,43.0/64.0,27.0/64.0,39.0/64.0,23.0/64.0,
+  2.0/64.0,50.0/64.0,14.0/64.0,62.0/64.0,1.0/64.0,49.0/64.0,13.0/64.0,61.0/64.0,
+  34.0/64.0,18.0/64.0,46.0/64.0,30.0/64.0,33.0/64.0,17.0/64.0,45.0/64.0,29.0/64.0,
+  10.0/64.0,58.0/64.0,6.0/64.0,54.0/64.0,9.0/64.0,57.0/64.0,5.0/64.0,53.0/64.0,
+  42.0/64.0,26.0/64.0,38.0/64.0,22.0/64.0,41.0/64.0,25.0/64.0,37.0/64.0,21.0/64.0
+);
+vec3 waveAt(vec2 fragCoord){
+  vec2 uv = fragCoord / resolution.xy;
+  uv -= 0.5;
+  uv.x *= resolution.x / resolution.y;
+  float f = pattern(uv);
+  if (enableMouseInteraction == 1) {
+    vec2 mouseNDC = (mousePos / resolution - 0.5) * vec2(1.0, -1.0);
+    mouseNDC.x *= resolution.x / resolution.y;
+    float dist = length(uv - mouseNDC);
+    float effect = 1.0 - smoothstep(0.0, mouseRadius, dist);
+    f -= 0.5 * effect;
+  }
+  return mix(backgroundColor, waveColor, clamp(f, 0.0, 1.0));
+}
+void main(){
+  vec2 pix = floor(gl_FragCoord.xy / pixelSize) * pixelSize;
+  vec3 color = waveAt(pix);
+  vec2 sc = floor(gl_FragCoord.xy / pixelSize);
+  int x = int(mod(sc.x, 8.0));
+  int y = int(mod(sc.y, 8.0));
+  float threshold = bayer[y * 8 + x] - 0.25;
+  float st = 1.0 / (colorNum - 1.0);
+  color += threshold * st;
+  float lum = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  float bias = mix(0.2, 0.0, smoothstep(0.45, 0.8, lum));
+  color = clamp(color - bias, 0.0, 1.0);
+  color = floor(color * (colorNum - 1.0) + 0.5) / (colorNum - 1.0);
+  fragColor = vec4(color, 1.0);
+}`;
+
+const MAZE = "M6,6 L6,11.4 L11.4,11.4 L11.4,6 L16.8,6 L22.2,6 L22.2,11.4 L16.8,11.4 L16.8,16.8 L22.2,16.8 L22.2,22.2 L16.8,22.2 L11.4,22.2 L11.4,16.8 L6,16.8 L6,22.2 L6,27.6 L11.4,27.6 L11.4,33 L6,33 L6,38.4 L6,43.8 L11.4,43.8 L11.4,38.4 L16.8,38.4 L16.8,43.8 L22.2,43.8 L22.2,38.4 L22.2,33 L16.8,33 L16.8,27.6 L22.2,27.6 L27.6,27.6 L33,27.6 L33,33 L27.6,33 L27.6,38.4 L27.6,43.8 L33,43.8 L33,38.4 L38.4,38.4 L38.4,43.8 L43.8,43.8 L43.8,38.4 L43.8,33 L38.4,33 L38.4,27.6 L43.8,27.6 L43.8,22.2 L43.8,16.8 L38.4,16.8 L38.4,22.2 L33,22.2 L27.6,22.2 L27.6,16.8 L33,16.8 L33,11.4 L27.6,11.4 L27.6,6 L33,6 L38.4,6 L38.4,11.4 L43.8,11.4 L43.8,6";
+
+const OVERLAY =
+'<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">' +
+'<defs><linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">' +
+'<stop offset="0" stop-color="#F4F2ED" stop-opacity="0"/>' +
+'<stop offset="0.32" stop-color="#F4F2ED" stop-opacity="0.86"/>' +
+'<stop offset="1" stop-color="#F4F2ED" stop-opacity="0.93"/>' +
+'</linearGradient></defs>' +
+'<rect x="430" y="0" width="770" height="630" fill="url(#scrim)"/>' +
+'<g transform="translate(155 150) scale(6.5)" fill="none" stroke="#1C1B19" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="' + MAZE + '"/></g>' +
+'<text x="503" y="230" font-family="Trebuchet MS,Segoe UI,sans-serif" font-size="24" letter-spacing="5" fill="#8A4B34">VOICE-FIRST NOTES</text>' +
+'<text x="500" y="372" font-family="Georgia,Times New Roman,serif" font-size="168" font-weight="700" fill="#1C1B19">Hark</text>' +
+'<rect x="506" y="398" width="188" height="5" rx="2.5" fill="#8A4B34"/>' +
+'<text x="505" y="456" font-family="Georgia,Times New Roman,serif" font-size="40" fill="#3D3B36">Speak your mind.</text>' +
+'<text x="505" y="508" font-family="Georgia,Times New Roman,serif" font-size="40" fill="#3D3B36">We’ll shape the thought.</text>' +
+'<text x="1150" y="592" text-anchor="end" font-family="Trebuchet MS,Segoe UI,sans-serif" font-size="23" fill="#6E6B64">hark.krbala.in</text>' +
+'</svg>';
+
+(async () => {
+  const gl = document.getElementById('gl').getContext('webgl2', { antialias: false, alpha: false, preserveDrawingBuffer: true });
+  const compile = (t, s) => { const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh); if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(sh)); return sh; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VERT));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(prog)); return; }
+  gl.useProgram(prog);
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const posLoc = gl.getAttribLocation(prog, 'pos');
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(prog, n);
+  gl.viewport(0, 0, 1200, 630);
+  gl.uniform2f(U('resolution'), 1200, 630);
+  gl.uniform1f(U('time'), 4.5);
+  gl.uniform1f(U('waveSpeed'), 0.05);
+  gl.uniform1f(U('waveFrequency'), 10.0);
+  gl.uniform1f(U('waveAmplitude'), 0.05);
+  gl.uniform3f(U('waveColor'), 0.54, 0.29, 0.2);
+  gl.uniform3f(U('backgroundColor'), 0.957, 0.949, 0.929);
+  gl.uniform2f(U('mousePos'), 0, 0);
+  gl.uniform1i(U('enableMouseInteraction'), 0);
+  gl.uniform1f(U('mouseRadius'), 1.0);
+  gl.uniform1f(U('colorNum'), 6.0);
+  gl.uniform1f(U('pixelSize'), 3.0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  const out = document.getElementById('out');
+  const ctx = out.getContext('2d');
+  ctx.drawImage(document.getElementById('gl'), 0, 0);
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(OVERLAY);
+  await img.decode();
+  ctx.drawImage(img, 0, 0, 1200, 630);
+  window.__og = out.toDataURL('image/png');
+  window.__ogReady = true;
+})();
+</script>
+</body>
+</html>
