@@ -9,6 +9,11 @@
 .cxx
 local.properties
 
+# Android release signing (never commit)
+keystore.properties
+*.jks
+*.keystore
+
 # Web PWA
 web/node_modules/
 web/dist/
