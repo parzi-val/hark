@@ -27,7 +27,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
         </button>
       ) : (
         // Expanded Drawer: Slides from right to left
-        <div className="flex items-center gap-2 p-1.5 rounded-full bg-paper/95 backdrop-blur-md border border-ink-hairline shadow-2xl animate-slide-in-right">
+        <div className="flex items-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 rounded-full bg-paper/95 backdrop-blur-md border border-ink-hairline shadow-2xl animate-slide-in-right">
           {/* Collapse button */}
           <button
             onClick={() => setExpanded(false)}
@@ -42,7 +42,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onWrite();
             }}
-            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+            className="px-3 sm:px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Write</span>
@@ -54,7 +54,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onShelf();
             }}
-            className="px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+            className="px-3 sm:px-5 h-11 rounded-full border border-ink-hairline bg-paper-card text-ink font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Shelf</span>
@@ -66,7 +66,7 @@ export const FloatingCapture: React.FC<FloatingCaptureProps> = ({
               setExpanded(false);
               onTalk();
             }}
-            className="px-5 h-11 rounded-full bg-ink text-paper font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="px-3 sm:px-5 h-11 rounded-full bg-ink text-paper font-mono text-xs font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
           >
             {/* 3 nib bars animation */}
             <span className="flex items-center gap-0.5">
