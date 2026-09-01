@@ -2,7 +2,7 @@
   "name": "Hark",
   "short_name": "Hark",
   "description": "Voice-first notes with AI tidying",
-  "start_url": "/",
+  "start_url": "/home",
   "display": "standalone",
   "background_color": "#F4F2ED",
   "theme_color": "#F4F2ED",
@@ -20,14 +20,14 @@
       "name": "Talk to Hark",
       "short_name": "Talk",
       "description": "Quick voice capture",
-      "url": "/?action=talk",
+      "url": "/home?action=talk",
       "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
     },
     {
       "name": "Write Note",
       "short_name": "Write",
       "description": "Compose a note",
-      "url": "/?action=write",
+      "url": "/home?action=write",
       "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
     }
   ]
